@@ -89,8 +89,7 @@ class Adyen_Payment_Block_Redirect extends Mage_Core_Block_Abstract
      *
      * @param mixed $debugData
      */
-    protected
-    function _debug(
+    protected function _debug(
         $storeId
     ) {
         if ($this->_getConfigData('debug', 'adyen_abstract', $storeId)) {
@@ -99,8 +98,7 @@ class Adyen_Payment_Block_Redirect extends Mage_Core_Block_Abstract
         }
     }
 
-    private
-    function getReceiptOrderLines(
+    private function getReceiptOrderLines(
         $order
     ) {
 

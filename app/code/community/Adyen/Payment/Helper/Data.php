@@ -34,7 +34,7 @@ class Adyen_Payment_Helper_Data extends Mage_Payment_Helper_Data
     const AFTERPAY = "afterpay";
     const CHECKOUT_CONTEXT_URL_LIVE = 'https://checkoutshopper-live.adyen.com/checkoutshopper/';
     const CHECKOUT_CONTEXT_URL_TEST = 'https://checkoutshopper-test.adyen.com/checkoutshopper/';
-    const CHECKOUT_COMPONENT_JS = 'sdk/2.0.0/adyen.js';
+    const CHECKOUT_COMPONENT_JS = 'sdk/2.1.0/adyen.js';
 
     /**
      * @return array

@@ -151,11 +151,19 @@ $originKey = $this->getOriginKey();
                                     }
                                 },
 
-                                onChange: function (state) {
+                                onChange: function (state, component) {
                                     if (hideCVC) {
                                         return;
                                     }
-                                    if (state.isValid) {
+                                    if (variant == "maestro"){
+                                        if(component.state.errors.encryptedSecurityCode) {
+                                            document.getElementById('encryptedSecurityCode<?php echo $_code; ?>').classList.add("required-entry");
+                                        }
+                                        else {
+                                            document.getElementById('encryptedSecurityCode<?php echo $_code; ?>').classList.remove("required-entry");
+                                        }
+                                    }
+                                    if (state.isValid && state.data.encryptedSecurityCode) {
                                         document.getElementById('encryptedSecurityCode<?php echo $_code; ?>').value = state.data.encryptedSecurityCode;
                                     } else {
                                         document.getElementById('encryptedSecurityCode<?php echo $_code; ?>').value = '';
