@@ -126,4 +126,35 @@ class Adyen_Payment_Model_Adyen_PosCloud extends Adyen_Payment_Model_Adyen_Abstr
         $stateObject->setStatus($this->_getConfigData('order_status'));
     }
 
+    /*
+     * Check if IP filter is active
+     */
+    public function isAvailable($quote = null)
+    {
+        $isAvailable = parent::isAvailable($quote);
+        // check if ip range is enabled
+        $ipFilter = $this->_getConfigData('ip_filter', 'adyen_pos_cloud');
+
+        if ($isAvailable && $ipFilter != 0) {
+            $ip = Mage::helper('adyen')->getClientIp();
+            switch ($ipFilter) {
+                case '1':
+                    // check if ip in in list
+                    $_list = $this->_getConfigData('ip_filter_ips', 'adyen_pos_cloud');
+                    $_list = str_replace(' ', '', $_list);
+                    $_list = explode(',', $_list);
+                    $isAvailable = in_array($ip, $_list);
+                    break;
+                case '2':
+                default:
+                    // check if ip is in range
+                    $from = $this->_getConfigData('ip_filter_from', 'adyen_pos_cloud');
+                    $to = $this->_getConfigData('ip_filter_to', 'adyen_pos_cloud');
+                    $isAvailable = Mage::helper('adyen')->ipInRange($ip, $from, $to);
+                    break;
+            }
+        }
+
+        return $isAvailable;
+    }
 }

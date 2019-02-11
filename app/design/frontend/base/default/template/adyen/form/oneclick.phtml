@@ -36,39 +36,21 @@ $originKey = $this->getOriginKey();
     <ul class="form-list adyen_oneclick" id="payment_form_<?php echo $_code ?>" style="display:none">
         <li>
             <?php if (isset($_recurringDetails["card_number"]) && isset($_recurringDetails["card_expiryMonth"]) && isset($_recurringDetails["card_expiryYear"])): ?>
-                <div class="columns three a">
-                    <label><?php echo $this->__('Credit Card Number') ?></label>
-                    <span><?php echo $this->__('**** **** **** %s', $_recurringDetails["card_number"]); ?></span>
-                </div>
-
-                <div class="columns three b">
-                    <label><?php echo $this->__('Expiration Date') ?><a href="#"
-                                                                        id="update-expiration-date-<?php echo $_code; ?>"
-                                                                        class="update-expiration-date"><?php echo $this->__('(update)') ?></a></label>
-
-                    <div id="static-card-expiry-<?php echo $_code; ?>" class="static-card-expiry">
-                        <?php echo $_recurringDetails["card_expiryMonth"] . " / " . $_recurringDetails["card_expiryYear"]; ?>
+                <div class="checkout-oneclick-container">
+                    <div id="oneclick-div-<?php echo $_code ?>" class="oneclick-div">
+                        <div class="js-chckt-pm__pm-holder">
+                            <input type="hidden" name="txvariant" value="oneclick_<?php echo $_code; ?>"/>
+                        </div>
                     </div>
-                    <div id="changable-card-expiry-<?php echo $_code; ?>" class="changable-card-expiry"
-                         style="display:none;">
-                        <select id="<?php echo $_code ?>_expiration_<?php echo $_code; ?>" <?php echo("data-encrypted-name-oneclick-" . $_code . "=expiryMonth"); ?>
-                                class="month validate-oneclick-exp required-entry">
-                            <?php foreach ($this->getCcMonths() as $k => $v): ?>
-                                <option value="<?php echo $k ? $k : '' ?>"<?php if ($k == $_recurringDetails["card_expiryMonth"]): ?> selected="selected"<?php
-                               endif ?>><?php echo $v ?></option>
-                            <?php endforeach ?>
-                        </select>
-
-                        <select id="<?php echo $_code ?>_expiration_yr_<?php echo $_code; ?>" <?php echo("data-encrypted-name-oneclick-" . $_code . "=expiryYear"); ?>
-                                class="year required-entry">
-                            <?php foreach ($this->getCcYears() as $k => $v): ?>
-                                <option value="<?php echo $k ? $k : '' ?>"<?php if ($k == $_recurringDetails["card_expiryYear"]): ?> selected="selected"<?php
-                               endif ?>><?php echo $v ?></option>
-                            <?php endforeach ?>
-                        </select>
-                    </div>
+                    <?php if ($this->showCvc() && $_recurringDetails["variant"] !== "bcmc"): ?>
+                        <input type="hidden" class="required-entry" name="payment[encrypted_cvc_<?php echo $_code; ?>]"
+                               id="encryptedSecurityCode<?php echo $_code; ?>"
+                               value="">
+                        <div class="validation-advice"
+                             id="advice-required-entry-encryptedSecurityCode<?php echo $_code; ?>"
+                             style="display: none;"><?php echo $this->__('This is a required field.') ?></div>
+                    <?php endif; ?>
                 </div>
-
             <?php if ($this->hasInstallments()): ?>
                 <div id="adyen_oneclick_installment_<?php echo $_code; ?>" class="adyen-oneclick-installments">
                     <label for="<?php echo $_code ?>_installment_<?php echo $_code; ?>"
@@ -86,63 +68,121 @@ $originKey = $this->getOriginKey();
                 </div>
             <?php endif; ?>
 
-                <div class="checkout-oneclick-container">
-                    <div id="oneclick-div-<?php echo $_code ?>" class="oneclick-div">
-                        <div class="js-chckt-pm__pm-holder">
-                            <input type="hidden" name="txvariant" value="oneclick_<?php echo $_code; ?>"/>
-                            <div id="update-exp-date-<?php echo $_code; ?>" style="display: none">
-                                <div class="input-container">
-                                    <span class="input-label"><?php echo $this->__('Expiry month') ?>:</span>
-                                    <span class="input-field" data-cse="encryptedExpiryMonth"></span>
-                                </div>
-                                <div class="input-container">
-                                    <span class="input-label"><?php echo $this->__('Expiry year') ?>:</span>
-                                    <span class="input-field" data-cse="encryptedExpiryYear"></span>
-                                </div>
-                            </div>
-                            <?php if ($this->showCvc()): ?>
-                                <div class="input-container">
-                                    <span class="input-label label-security-code"><?php echo $this->__('Security code') ?>
-                                        :</span>
-                                    <span class="input-field" data-cse="encryptedSecurityCode"></span>
-                                </div>
-                            <?php endif; ?>
-                        </div>
-                    </div>
-                    <input type="hidden" name="payment[encrypted_expiry_month_<?php echo $_code; ?>]"
-                           id="encryptedExpiryMonth<?php echo $_code; ?>" value="">
-                    <input type="hidden" name="payment[encrypted_expiry_year_<?php echo $_code; ?>]"
-                           id="encryptedExpiryYear<?php echo $_code; ?>" value="">
-                    <?php if ($this->showCvc()): ?>
-                        <input type="hidden" class="required-entry" name="payment[encrypted_cvc_<?php echo $_code; ?>]"
-                               id="encryptedSecurityCode<?php echo $_code; ?>"
-                               value="">
-                    <?php endif; ?>
-                    <div class="validation-advice" id="advice-required-entry-encryptedSecurityCode<?php echo $_code; ?>"
-                         style="display: none;"><?php echo $this->__('This is a required field.') ?></div>
-                </div>
-
                 <script type="text/javascript">
 
-                    // On radio button, hide the date(if present) and show the href
-                    Event.observe($("p_method_<?php echo $_code; ?>"), 'change', function () {
-                        $("update-exp-date-<?php echo $_code; ?>").hide();
-                        $("update-expiration-date-<?php echo $_code; ?>").show();
-                    });
+                    function polyFill() {
+                        if (Array.prototype.filter) {
+                            Array.prototype.filter = function (func, thisArg) {
+                                'use strict';
+                                if (!((typeof func === 'Function' || typeof func === 'function') && this))
+                                    throw new TypeError();
 
-                    // update-expiration-date action
-                    $$('#update-expiration-date-<?php echo $_code; ?>').each(function (element) {
-                        element.observe('click', updateExpirationDate);
-                    });
+                                var len = this.length >>> 0,
+                                    res = new Array(len), // preallocate array
+                                    t = this, c = 0, i = -1;
+                                if (thisArg === undefined) {
+                                    while (++i !== len) {
+                                        // checks to see if the key was set
+                                        if (i in this) {
+                                            if (func(t[i], i, t)) {
+                                                res[c++] = t[i];
+                                            }
+                                        }
+                                    }
+                                } else {
+                                    while (++i !== len) {
+                                        // checks to see if the key was set
+                                        if (i in this) {
+                                            if (func.call(thisArg, t[i], i, t)) {
+                                                res[c++] = t[i];
+                                            }
+                                        }
+                                    }
+                                }
 
-                    function updateExpirationDate(event) {
-                        // hide the link
-                        this.hide();
-                        // show expiration month and year/changeable card expiry
-                        $("update-exp-date-<?php echo $_code; ?>").show();
-                        event.preventDefault();
+                                res.length = c; // shrink down array to proper size
+                                return res;
+                            };
+                        }
                     }
 
+                    /**
+                     * Renders the secure CVC field,
+                     * creates the card component,
+                     * sets up the callbacks for card components
+                     */
+                    function renderSecureCVC() {
+                        var locale = "<?php echo Mage::app()->getLocale()->getLocaleCode();?>";
+                        var variant = "<?php echo $_recurringDetails["variant"]?>";
+                        var oneClickCardNode = document.getElementById('oneclick-div-<?php echo $_code ?>');
+
+                        var checkout = new AdyenCheckout({
+                            locale: locale,
+                            originKey: "<?php echo $originKey;?>",
+                            loadingContext: "<?php echo Mage::helper('adyen')->getCheckoutContextUrl();?>"
+                        });
+                        var hideCVC = false;
+                        if ("<?php echo $this->showCvc();?>") {
+                            if (variant == "bcmc") {
+                                hideCVC = true;
+                            } else if (variant == "maestro") {
+                                document.getElementById('encryptedSecurityCode<?php echo $_code; ?>').classList.remove("required-entry");
+                            }
+                        } else {
+                            hideCVC = true;
+                        }
+                        var oneClickCard = checkout
+                            .create('card', {
+                                type: variant,
+                                oneClick: true,
+                                hideCVC: hideCVC,
+
+                                // Specific for oneClick cards
+                                details: [
+                                    {
+                                        "key": "cardDetails.cvc",
+                                        "type": "cvc"
+                                    }
+                                ],
+                                storedDetails: {
+                                    "card": {
+                                        "expiryMonth": <?php echo $_recurringDetails["card_expiryMonth"]?>,
+                                        "expiryYear": <?php echo $_recurringDetails["card_expiryYear"]?>
+                                    }
+                                },
+
+                                onChange: function (state, component) {
+                                    if (hideCVC) {
+                                        return;
+                                    }
+                                    if (variant == "maestro"){
+                                        if(component.state.errors.encryptedSecurityCode) {
+                                            document.getElementById('encryptedSecurityCode<?php echo $_code; ?>').classList.add("required-entry");
+                                        }
+                                        else {
+                                            document.getElementById('encryptedSecurityCode<?php echo $_code; ?>').classList.remove("required-entry");
+                                        }
+                                    }
+                                    if (state.isValid && state.data.encryptedSecurityCode) {
+                                        document.getElementById('encryptedSecurityCode<?php echo $_code; ?>').value = state.data.encryptedSecurityCode;
+                                    } else {
+                                        document.getElementById('encryptedSecurityCode<?php echo $_code; ?>').value = '';
+                                    }
+
+                                }
+                            })
+                            .mount(oneClickCardNode);
+                    }
+
+                    var secf = document.createElement("script");
+                    <?php $adyenHelper = Mage::helper('adyen'); ?>
+                    secf.src = "<?php echo $adyenHelper->getCheckoutCardComponentJs();?>";
+                    secf.type = "text/javascript";
+                    secf.onload = function () {
+                        polyFill();
+                        renderSecureCVC();
+                    };
+                    document.body.appendChild(secf);
                 </script>
 
             <?php elseif (isset($_recurringDetails["variant"]) && $_recurringDetails["variant"] == "elv"): ?>

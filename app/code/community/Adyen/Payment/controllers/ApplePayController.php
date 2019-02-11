@@ -69,6 +69,7 @@ class Adyen_Payment_ApplePayController extends Mage_Core_Controller_Front_Action
                 'Content-Length: ' . strlen($data)
             )
         );
+        curl_setopt($ch, CURLOPT_FRESH_CONNECT, 1); 
 
         $result = curl_exec($ch);
         $httpStatus = curl_getinfo($ch, CURLINFO_HTTP_CODE);
@@ -112,28 +113,29 @@ class Adyen_Payment_ApplePayController extends Mage_Core_Controller_Front_Action
         $params = $this->getRequest()->getParams();
 
         // allow empty parameters because this can happen if you have an invalid address in wallet on phone
-        if (isset($params['country'])) {
-            $country = $params['country'];
-        } else {
-            $country = "";
+        $country = "";
+        if(isset($params['country'])) {
+            $country = strtoupper($params['country']);
         }
 
-        if (isset($params['zipcode'])) {
-            $zipcode = $params['zipcode'];
-        } else {
-            $zipcode = "";
+        $zipcode = "";
+        if(isset($params['zipcode'])) {
+            $zipcode = trim($params['zipcode']);
+            // ApplePay only provides the 1st part of a UK postcode.
+            // add a dummy 2nd part for correct postcode rate matching 
+            if($country == 'GB') {
+              $zipcode .= ' 5EZ';
+            }
         }
 
-        if (isset($params['productId'])) {
+        $productId = "";
+        if(isset($params['productId'])) {
             $productId = $params['productId'];
-        } else {
-            $productId = "";
         }
 
-        if (isset($params['qty'])) {
+        $qty = 1;
+        if(isset($params['qty'])) {
             $qty = $params['qty'];
-        } else {
-            $qty = 1;
         }
 
         // is it from the cart or from a product ??
@@ -167,15 +169,38 @@ class Adyen_Payment_ApplePayController extends Mage_Core_Controller_Front_Action
             $rates = $address->collectShippingRates()
                 ->getGroupedAllShippingRates();
 
+            // Refresh totals - they might have changed with new address/tax
+            $totals = $cart->getQuote()->getTotals();
+            $config = Mage::getSingleton('tax/config');
+
+            $total = 0;
+            if(isset($totals['grand_total']) && $totals['grand_total']->getValue()) {
+              $total = $totals["grand_total"]->getValue();
+            }
+
             $costs = array();
             foreach ($rates as $carrier) {
                 foreach ($carrier as $rate) {
-                    $costs[] = array(
-                        'label' => trim($rate->getCarrierTitle()),
+
+                    // get shipping with correct tax applied, convert to correct currency for store/customer & strip currency symbols.
+                    $shipping_amount = Mage::helper('tax')->getShippingPrice($rate->getPrice(), true, $address);
+                    $shipping_amount = Mage::helper('core')->currency($shipping_amount,$format=true,$incContainer=false); 
+                    $shipping_amount = FILTER_VAR($shipping_amount, FILTER_SANITIZE_NUMBER_FLOAT, FILTER_FLAG_ALLOW_FRACTION);
+
+                    $cost = new Varien_Object(array(
+                        'label' => trim($rate->getMethodTitle()),
                         'detail' => '',
-                        'amount' => $rate->getPrice(),
-                        'identifier' => $rate->getCode()
-                    );
+                        'amount' => $shipping_amount,
+                        'identifier' => $rate->getCode(),
+                        // refresh total with inclusive/exclusive tax
+                        // may have changed with new address
+                        'total' => $total,
+                        'subtotal' => $total - $shipping_amount,
+                    ));
+                    // allow shipping method to be updated by 3rd party extension
+                    // e.g. stores/ developers may want to update label
+                    Mage::dispatchEvent('adyen_apple_pay_shipping_rate_init', array('cost'=>$cost, 'rate'=> $rate, 'address'=>$address));
+                    $costs[] = $cost->toArray();
                 }
             }
         }
@@ -247,7 +272,7 @@ class Adyen_Payment_ApplePayController extends Mage_Core_Controller_Front_Action
         }
 
         $qty = $params['qty'];
-        $shippingMethod = $params['shippingMethod'];
+        $shippingMethod = isset($params['shippingMethod']) ? $params['shippingMethod'] : null;
         $payment = json_decode($params['payment']);
 
 
@@ -271,8 +296,10 @@ class Adyen_Payment_ApplePayController extends Mage_Core_Controller_Front_Action
             $customer = Mage::getSingleton('customer/session')->getCustomer();
             $quote = $quote->assignCustomer($customer);
         } else {
-            if (!empty($payment->shippingContact)) {
+            if (!empty($payment->shippingContact->emailAddress)) {
                 $quote->setCustomerEmail($payment->shippingContact->emailAddress);
+            } else {
+                Mage::throwException(Mage::helper('adyen')->__('Missing email address in payment'));
             }
         }
 

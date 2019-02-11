@@ -61,12 +61,6 @@ class Adyen_Payment_Model_Adyen_Cc extends Adyen_Payment_Model_Adyen_Abstract im
             $info->setAdditionalInformation('store_cc', $data->getStoreCc());
         }
 
-        if (empty($data->getCcType()) && !Mage::app()->getStore()->isAdmin()) {
-            Mage::throwException(Mage::helper('adyen')->__('Invalid card type.'));
-        }
-
-        $info->setCcType($data->getCcType());
-
         $info->setCcOwner($data->getCcOwner());
 
         if (empty($data->getEncryptedNumber()) || empty($data->getEncryptedExpiryMonth()) || empty($data->getEncryptedExpiryYear())) {

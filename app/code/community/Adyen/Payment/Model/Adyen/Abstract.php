@@ -237,7 +237,7 @@ abstract class Adyen_Payment_Model_Adyen_Abstract extends Mage_Payment_Model_Met
 
         // check if a zero auth should be done for this order
         $useZeroAuth = (bool)Mage::helper('adyen')->getConfigData('use_zero_auth', null, $order->getStoreId());
-        $zeroAuthDateField = (bool)Mage::helper('adyen')->getConfigData(
+        $zeroAuthDateField = Mage::helper('adyen')->getConfigData(
             'base_zero_auth_on_date', null,
             $order->getStoreId()
         );

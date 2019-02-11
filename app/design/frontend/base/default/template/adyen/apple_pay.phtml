@@ -184,7 +184,7 @@ if ($this->hasApplePayEnabled()):
 
             var paymentRequest = {
                 currencyCode: "<?php echo $currency; ?>",
-                countryCode: "US",
+                countryCode: "<?php echo $this->getShippingCountry(); ?>",
                 total: {
                     label: "<?php echo $productTitle; ?>",
                     amount: window.AdyenApplePayTotalAmount
@@ -249,18 +249,34 @@ if ($this->hasApplePayEnabled()):
                 var promise = retrieveShippingMethods(shippingContract.countryCode, shippingContract.postalCode);
                 promise.then(function (shippingMethods) {
 
-                    if (shippingMethods.length > 0) {
-                        var status = session.STATUS_SUCCESS;
-                        var newTotal = {
+                    var status = session.STATUS_SUCCESS;
+                    var newTotal = {
+                        label: "<?php echo $productTitle; ?>",
+                        amount: amount
+                    };
+
+                    var newLineItems = [
+                        {
+                            type: "final",
                             label: "<?php echo $productTitle; ?>",
-                            amount: amount + shippingMethods[0].amount
+                            amount: amount
+                        }
+                    ];
+
+                    if(shippingMethods.length > 0){
+
+                        status = session.STATUS_SUCCESS;
+
+                        newTotal = {
+                            label: "<?php echo $productTitle; ?>",
+                            amount: shippingMethods[0].total
                         };
 
-                        var newLineItems = [
+                        newLineItems = [
                             {
                                 type: "final",
                                 label: "<?php echo $this->__('subtotal') ?>",
-                                amount: amount
+                                amount: shippingMethods[0].subtotal
                             },
                             {
                                 type: "final",
@@ -273,20 +289,11 @@ if ($this->hasApplePayEnabled()):
                         // set the shippingMethod
                         window.AdyenApplePayShippingMethodIdentifier = shippingMethods[0].identifier;
                     } else {
-                        var status = session.STATUS_SUCCESS;
-                        var newTotal = {
-                            label: "<?php echo $productTitle; ?>",
-                            amount: amount
-                        };
-
-                        var newLineItems = [
-                            {
-                                type: "final",
-                                label: "<?php echo $productTitle; ?>",
-                                amount: amount
-                            }
-                        ];
-
+                      // if there is NO shipping method then fail if config says to.
+                      var require_shipping = <?php echo Mage::helper('adyen')->getConfigData('require_shipping', 'adyen_apple_pay'); ?>;
+                      if(require_shipping) {
+                        status = session.STATUS_FAILURE;
+                      }
                     }
 
                     session.completeShippingContactSelection(status, shippingMethods, newTotal, newLineItems);
@@ -341,13 +348,12 @@ if ($this->hasApplePayEnabled()):
                         // redirect to success page
                         window.location = "/checkout/onepage/success";
                     }
-                }, function (reason) {
-                    if (reason.message == "ERROR BILLING") {
-                        var status = session.STATUS_INVALID_BILLING_POSTAL_ADDRESS;
-                    } else if (reason.message == "ERROR SHIPPING") {
-                        var status = session.STATUS_INVALID_SHIPPING_POSTAL_ADDRESS;
-                    } else {
-                        var status = session.STATUS_FAILURE;
+                }, function(reason) {
+                    var status = session.STATUS_FAILURE;
+                    if(reason.message == "ERROR BILLING") {
+                        status = session.STATUS_INVALID_BILLING_POSTAL_ADDRESS;
+                    } else if(reason.message == "ERROR SHIPPING") {
+                        status = session.STATUS_INVALID_SHIPPING_POSTAL_ADDRESS;
                     }
                     session.completePayment(status);
                 });

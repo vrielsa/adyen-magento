@@ -32,79 +32,14 @@ $originKey = $this->getOriginKey();
 ?>
 
 <ul class="form-list" id="payment_form_<?php echo $_code ?>" style="display:none;">
-    <li class="adyen_payment_creditcard_labels">
-        <?php $count = 0;
-        foreach ($this->getCcAvailableTypes() as $_typeCode => $_data): ?>
-            <?php $_filename = $this->getSkinUrl('images/adyen/' . strtolower($_data['code_alt']) . '_small.png'); ?>
-            <img id="cc_type_<?php echo $count; ?>" width="40" height="22" src="<?php echo $_filename; ?>" alt=""
-                 class="mid"/>
-            <?php ++$count;
-        endforeach; ?>
-        <input type="hidden" id="<?php echo $_code ?>_cc_type" name="payment[cc_type]" value=""/>
-    </li>
 
     <?php echo $this->getChildHtml() ?>
 
-    <?php if ($this->hasInstallments()): ?>
-        <li class="adyen_payment_input_fields adyen_payment_input_fields_cc_installments">
-            <label for="<?php echo $_code ?>_installments"
-                   class="required"><em>*</em><?php echo $this->__('Installments') ?></label>
-            <div class="input-box">
-                <div class="v-fix">
-                    <select id="<?php echo $_code ?>_installments" name="payment[additional_data]"
-                            class="number required-entry">
-                        <?php foreach ($this->getPossibleInstallments() as $k => $v): ?>
-                            <option value="<?php echo $k ? $k : '' ?>"><?php echo $v ?></option>
-                        <?php endforeach ?>
-                    </select>
-                </div>
-            </div>
-        </li>
-    <?php endif; ?>
-
-    <?php if ($this->canCreateBillingAgreement()): ?>
-        <script type="text/javascript">
-            // don't show save cc for guest checkout. Only possible to detect with javascript
-            if ($('login:guest') && $('login:guest').checked) {
-                $('adyen-remember-details').hide();
-            }
-        </script>
-    <?php endif; ?>
-
 
     <script type="text/javascript">
+        //<![CDATA[
+
         var alt_types = <?php echo json_encode(array_column($this->getCcAvailableTypes(), 'code_alt')); ?>;
-
-        function cardSetCardBrand(selectedCard, greyInactive, alt_types) {
-            for (var i = 0; i < alt_types.length; ++i) {
-                var imageId = 'cc_type_' + i;
-                if (selectedCard != null && alt_types[i] == selectedCard) {
-                    // remove class
-                    $(imageId).removeClassName('grey');
-                    // set hidden field cc type for installments
-                    $('<?php echo $_code ?>_cc_type').setValue(selectedCard);
-                } else {
-                    if (greyInactive) {
-                        // add class
-                        $(imageId).addClassName('grey');
-                    } else {
-                        // remove class
-                        $(imageId).removeClassName('grey');
-                    }
-                }
-                if (selectedCard == "card") {
-                    $('<?php echo $_code ?>_cc_type').setValue("");
-                }
-                document.getElementById(imageId).style.display = "inline";
-            }
-
-            <?php if($this->hasInstallments()): ?>
-            if (selectedCard != null) {
-                getInstallments(selectedCard);
-            }
-            <?php endif; ?>
-
-        }
 
         var ajaxReq;
 
@@ -154,149 +89,162 @@ $originKey = $this->getOriginKey();
             });
         }
 
-        function initiateSecuredFields() {
-            var cardGroupTypes = alt_types.slice();
-            //cardDefault is added to since the onBrand callback is not fired with only one Type
-            cardGroupTypes.push('cardDefault');
-            var styleObject = {
-                error: {color: 'red'}
-            };
-            var securedFields = csf(
-                {
-                    configObject: {
-                        originKey: "<?php echo $originKey;?>",
-                        cardGroupTypes: cardGroupTypes
-                    },
-                    rootNode: 'body',
-                    allowedDOMAccess: false,
-                    recurringCardIndicator: 'oneclick_',
-                    paymentMethods: {
-                        card: {
-                            sfStyles: styleObject,
-                            placeholders: {
-                                encryptedCardNumber: '4111 1111 1111 1111',
-                                encryptedExpiryMonth: '10',
-                                encryptedExpiryYear: '20',
-                                encryptedSecurityCode: '737'
-                            }
 
+        function renderSecureFields() {
+            var locale = "<?php echo Mage::app()->getLocale()->getLocaleCode();?>";
+            var cardGroupTypes = alt_types.slice();
+            var self = this;
+            var cardNode = document.getElementById('cardContainer');
+
+            // we can now rely on $ within the safety of our "bodyguard" function
+            var checkout = new AdyenCheckout({
+                locale: locale,
+                originKey: "<?php echo $originKey;?>",
+                loadingContext: "<?php echo Mage::helper('adyen')->getCheckoutContextUrl();?>"
+            });
+            var card = checkout.create('card', {
+                type: 'card',
+                hasHolderName: true,
+                holderNameRequired: true,
+                groupTypes: cardGroupTypes,
+
+                onChange: function (state, component) {
+                    if (state.isValid && !component.state.errors.encryptedSecurityCode) {
+                        document.getElementById('holderName').value = state.data.holderName;
+                        document.getElementById('encryptedCardNumber').value = state.data.encryptedCardNumber;
+                        document.getElementById('encryptedExpiryMonth').value = state.data.encryptedExpiryMonth;
+                        document.getElementById('encryptedExpiryYear').value = state.data.encryptedExpiryYear;
+                        if (state.data.encryptedSecurityCode) {
+                            document.getElementById('encryptedSecurityCode').value = state.data.encryptedSecurityCode;
                         }
+                        document.getElementById("allValidcard").value = true;
+                    } else {
+                        resetFields();
+                    }
+                },
+                onBrand: function (state) {
+                    // Define the card type for installments
+                    var creditCardType = state.brand;
+                    if (creditCardType) {
+                        if (creditCardType == "BCMC") {
+                            creditCardType = "MI";
+                        }
+                        <?php if($this->hasInstallments()): ?>
+                        getInstallments(creditCardType);
+                        <?php endif; ?>
                     }
                 }
-            );
-            securedFields.onBrand(function (brandObject) {
-                if (brandObject.brand) {
-                    cardSetCardBrand(brandObject.brand, true, alt_types);
-                }
             });
-            securedFields.onFieldValid(function (result) {
-                if (result.txVariant == 'card') {
-                    document.getElementById(result.encryptedFieldName).value = result.blob;
-                }
-                else {
-                    document.getElementById(result.encryptedFieldName.concat(result.txVariant.replace("oneclick_", ""))).value = result.blob;
-                }
-            });
-            securedFields.onError(function (errorObject) {
-                if (errorObject.error != "") {
-                    document.getElementById(errorObject.fieldType).value = "";
-                    element = document.getElementById("advice-required-entry-".concat(errorObject.fieldType));
-                    element.update('<?php echo $this->__('The field is not valid.')?>');
-                    element.style.opacity = 1;
-                    element.show();
-                }
-                else {
-                    element = document.getElementById("advice-required-entry-".concat(errorObject.fieldType));
-                    element.update('<?php echo $this->__('This is a required field.')?>');
-                    element.hide();
-                }
-            });
-            securedFields.onAllValid(function (allValidObject) {
-                if (allValidObject.allValid) {
-                    document.getElementById("allValidcard").value = true;
-                }
-                else {
-                    document.getElementById("allValidcard").value = "";
-                }
-            });
+            card.mount(cardNode);
+        }
+        function resetFields(){
+            document.getElementById('holderName').value = "";
+            document.getElementById('encryptedCardNumber').value = "";
+            document.getElementById('encryptedExpiryMonth').value = "";
+            document.getElementById('encryptedExpiryYear').value = "";
+            document.getElementById('encryptedSecurityCode').value = "";
+            document.getElementById("allValidcard").value = "";
+        }
+        function polyFill() {
+            if (Array.prototype.filter) {
+                Array.prototype.filter = function (func, thisArg) {
+                    'use strict';
+                    if (!((typeof func === 'Function' || typeof func === 'function') && this))
+                        throw new TypeError();
+
+                    var len = this.length >>> 0,
+                        res = new Array(len), // preallocate array
+                        t = this, c = 0, i = -1;
+                    if (thisArg === undefined) {
+                        while (++i !== len) {
+                            // checks to see if the key was set
+                            if (i in this) {
+                                if (func(t[i], i, t)) {
+                                    res[c++] = t[i];
+                                }
+                            }
+                        }
+                    } else {
+                        while (++i !== len) {
+                            // checks to see if the key was set
+                            if (i in this) {
+                                if (func.call(thisArg, t[i], i, t)) {
+                                    res[c++] = t[i];
+                                }
+                            }
+                        }
+                    }
+
+                    res.length = c; // shrink down array to proper size
+                    return res;
+                };
+            }
         }
 
         var secf = document.createElement("script");
         <?php $adyenHelper = Mage::helper('adyen'); ?>
-        secf.src = "<?php echo $adyenHelper->getSecuredFieldsURL();?>";
+        secf.src = "<?php echo $adyenHelper->getCheckoutCardComponentJs();?>";
         secf.type = "text/javascript";
-        secf.onload = initiateSecuredFields;
+        secf.onload = function () {
+            polyFill();
+            renderSecureFields();
+        };
         document.body.appendChild(secf);
 
+        //]]>
     </script>
     <li>
-        <div class="checkout-container" id="adyen-cc-checkout-container">
+        <div class="checkout-container" id="cardContainer">
             <div class="form-div">
-                <div class="js-chckt-pm__pm-holder">
-                    <input type="hidden" name="txvariant" value="card"/>
-                    <div class="input-container">
-                        <span class="input-label"><?php echo $this->__('Name on Card') ?></span>
-                        <div class="input-field required"><input type="text"
-                                                                 title="<?php echo $this->__('Name on Card') ?>"
-                                                                 class="input-field required-entry"
-                                                                 autocomplete="cc-name"
-                                                                 id="<?php echo $_code ?>_cc_owner" <?php echo("name=\"payment[cc_owner]\""); ?>
-                                                                 value="<?php echo $this->htmlEscape($this->getInfoData('cc_owner')) ?>"
-                                                                 maxlength="100"/>
-                        </div>
-                    </div>
-                    <div class="validation-advice" id="advice-required-entry-adyen_cc_cc_owner"
-                         style="display: none;"><?php echo $this->__('This is a required field.') ?></div>
-                    <div class="input-container">
-                        <span class="input-label"><?php echo $this->__('Card number') ?>:</span>
-                        <span class="input-field required-entry" data-cse="encryptedCardNumber"></span>
-                    </div>
-                    <div class="validation-advice" id="advice-required-entry-encryptedCardNumber"
-                         style="display: none;"><?php echo $this->__('This is a required field.') ?>
-                    </div>
-                    <div class="input-container">
-                        <span class="input-label"><?php echo $this->__('Expiry month') ?>:</span>
-                        <span class="input-field" data-cse="encryptedExpiryMonth"></span>
-                    </div>
-                    <div class="validation-advice" id="advice-required-entry-encryptedExpiryMonth"
-                         style="display: none;"><?php echo $this->__('This is a required field.') ?></div>
-                    <div class="input-container">
-                        <span class="input-label"><?php echo $this->__('Expiry year') ?>:</span>
-                        <span class="input-field" data-cse="encryptedExpiryYear"></span>
-                    </div>
-                    <div class="validation-advice" id="advice-required-entry-encryptedExpiryYear"
-                         style="display: none;"><?php echo $this->__('This is a required field.') ?></div>
-                    <div class="input-container">
-                        <span class="input-label label-security-code"><?php echo $this->__('Security code') ?>:</span>
-                        <span class="input-field" data-cse="encryptedSecurityCode"></span>
-                    </div>
-                    <div class="validation-advice" id="advice-required-entry-encryptedSecurityCode"
-                         style="display: none;"><?php echo $this->__('This is a required field.') ?></div>
-                    <?php if ($this->canCreateBillingAgreement()): ?>
-                        <div class="input-box" id="adyen-remember-details">
-                            <div class="v-fix">
-                                <input type="checkbox" name="payment[store_cc]" id="<?php echo $_code ?>_store_cc"
-                                       value="1" checked/>
-                                <label for="<?php echo $_code ?>_store_cc"><em>*</em><?php echo $this->__('Remember these details') ?>
-                                </label>
-                            </div>
-                        </div>
-                    <?php endif; ?>
+                <input type="hidden" name="payment[cc_owner]" id="holderName"
+                       value="">
+                <input type="hidden" name="payment[encrypted_number]" id="encryptedCardNumber"
+                       value="">
+                <input type="hidden" name="payment[encrypted_expiry_month]" id="encryptedExpiryMonth"
+                       value="">
+                <input type="hidden" name="payment[encrypted_expiry_year]" id="encryptedExpiryYear"
+                       value="">
+                <input type="hidden" name="payment[encrypted_cvc]" id="encryptedSecurityCode"
+                       value="">
+                <input type="hidden" class="required-entry" name="allValidcard" id="allValidcard" value="">
+            </div>
+        </div>
+    </li>
+    <?php if ($this->hasInstallments()): ?>
+        <li class="adyen_payment_input_fields adyen_payment_input_fields_cc_installments">
+            <label for="<?php echo $_code ?>_installments"
+                   class="required"><em>*</em><?php echo $this->__('Installments') ?></label>
+            <div class="input-box">
+                <div class="v-fix">
+                    <select id="<?php echo $_code ?>_installments" name="payment[additional_data]"
+                            class="number required-entry">
+                        <?php foreach ($this->getPossibleInstallments() as $k => $v): ?>
+                            <option value="<?php echo $k ? $k : '' ?>"><?php echo $v ?></option>
+                        <?php endforeach ?>
+                    </select>
                 </div>
             </div>
 
-            <input type="hidden" class="required-entry" name="payment[encrypted_number]" id="encryptedCardNumber"
-                   value="">
-            <input type="hidden" class="required-entry" name="payment[encrypted_expiry_month]" id="encryptedExpiryMonth"
-                   value="">
-            <input type="hidden" class="required-entry" name="payment[encrypted_expiry_year]" id="encryptedExpiryYear"
-                   value="">
-            <input type="hidden" class="required-entry" name="payment[encrypted_cvc]" id="encryptedSecurityCode"
-                   value="">
-            <input type="hidden" class="required-entry" name="allValidcard" id="allValidcard" value="">
-            <div class="validation-advice" id="advice-required-entry-allValidcard"
-                 style="display: none;"><?php echo $this->__('Please check that all the required fields are valid.') ?></div>
-
-        </div>
-    </li>
+        </li>
+    <?php endif; ?>
+    <?php if ($this->canCreateBillingAgreement()): ?>
+        <li>
+            <div class="input-box" id="adyen-remember-details">
+                <div class="v-fix">
+                    <input type="checkbox" name="payment[store_cc]" id="<?php echo $_code ?>_store_cc"
+                           value="1"/>
+                    <label for="<?php echo $_code ?>_store_cc"><em>*</em><?php echo $this->__('Remember these details') ?>
+                    </label>
+                </div>
+            </div>
+            <script type="text/javascript">
+                // don't show save cc for guest checkout. Only possible to detect with javascript
+                if ($('login:guest') && $('login:guest').checked) {
+                    $('adyen-remember-details').hide();
+                }
+            </script>
+        </li>
+    <?php endif; ?>
+    <div class="validation-advice" id="advice-required-entry-allValidcard"
+         style="display: none;"><?php echo $this->__('Please check that all the required fields are valid.') ?></div>
 </ul>

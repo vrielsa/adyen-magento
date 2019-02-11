@@ -60,146 +60,21 @@ class Adyen_Payment_Block_Redirect extends Mage_Core_Block_Abstract
 
     protected function _toHtml()
     {
-
         $order = $this->_getOrder();
-        $paymentObject = $order->getPayment();
         $payment = $order->getPayment()->getMethodInstance();
-
         $html = '<html><head><link rel="stylesheet" type="text/css" href="' . Mage::getBaseUrl(Mage_Core_Model_Store::URL_TYPE_SKIN) . '/frontend/base/default/css/adyenstyle.css"><script src="//ajax.googleapis.com/ajax/libs/jquery/1.10.2/jquery.min.js" ></script>';
-
-        // for cash add epson libary to open the cash drawer
-        $cashDrawer = $this->_getConfigData("cash_drawer", "adyen_pos", null);
-        if ($payment->getCode() == "adyen_hpp_c_cash" && $cashDrawer) {
-            $jsPath = Mage::getBaseUrl(Mage_Core_Model_Store::URL_TYPE_JS);
-            $html .= '<script src="' . $jsPath . 'adyen/payment/epos-device-2.6.0.js"></script>';
-        }
-
         $html .= '</head><body class="redirect-body-adyen">';
 
+        // do not use Magento form because this generate a form_key input field
+        $html .= '<form name="adyenForm" id="' . $payment->getCode() . '" action="' . $payment->getFormUrl() . '" method="post">';
 
-        // if pos payment redirect to app
-        if ($payment->getCode() == "adyen_pos") {
-            $adyFields = $payment->getFormFields();
-            // use the secure url (if not secure this will be filled in with http://
-            $url = urlencode(Mage::getBaseUrl(Mage_Core_Model_Store::URL_TYPE_LINK, true) . "adyen/process/successPos");
-
-            // detect ios or android
-            $userAgent = $_SERVER['HTTP_USER_AGENT'];
-            $iPod = stripos($userAgent, "iPod");
-            $iPhone = stripos($userAgent, "iPhone");
-            $iPad = stripos($userAgent, "iPad");
-            $Android = stripos($userAgent, "Android");
-            $webOS = stripos($userAgent, "webOS");
-
-            // extra parameters so that you alway's return these paramters from the application
-            $extra_paramaters = urlencode("/?originalCustomCurrency=" . $adyFields['currencyCode'] . "&originalCustomAmount=" . $adyFields['paymentAmount'] . "&originalCustomMerchantReference=" . $adyFields['merchantReference'] . "&originalCustomSessionId=" . session_id());
-
-            // add recurring before the callback url
-            if (empty($adyFields['recurringContract'])) {
-                $recurring_parameters = "";
-            } else {
-                $recurring_parameters = "&recurringContract=" . urlencode($adyFields['recurringContract']) . "&shopperReference=" . urlencode($adyFields['shopperReference']) . "&shopperEmail=" . urlencode($adyFields['shopperEmail']);
-            }
-
-
-            $addReceiptOrderLines = $this->_getConfigData("add_receipt_order_lines", "adyen_pos", null);
-
-            $receiptOrderLines = "";
-            if ($addReceiptOrderLines) {
-                $orderLines = base64_encode($this->getReceiptOrderLines($this->_getOrder()));
-                $receiptOrderLines = "&receiptOrderLines=" . urlencode($orderLines);
-            }
-
-            // important url must be the latest parameter before extra parameters! otherwise extra parameters won't return in return url
-            $launchlink = "adyen://payment?sessionId=" . session_id() . "&amount=" . $adyFields['paymentAmount'] . "&currency=" . $adyFields['currencyCode'] . "&merchantReference=" . $adyFields['merchantReference'] . $recurring_parameters . $receiptOrderLines . "&callback=" . $url . $extra_paramaters;
-
-            // log the launchlink
-            $this->_debugData['LaunchLink'] = $launchlink;
-            $storeId = $order->getStoreId();
-            $this->_debug($storeId);
-
-            // call app directly without HPP
-            $html .= "<div id=\"pos-redirect-page\">
-    					<div class=\"logo\"></div>
-    					<div class=\"grey-header\">
-    						<h1>{$this->__('POS Payment')}</h1>
-    					</div>
-    					<div class=\"amount-box\">" .
-                $adyFields['paymentAmountGrandTotal'] .
-                "<a id=\"launchlink\" href=\"" . $launchlink . "\" >{$this->__('Payment')}</a> " .
-                "<span id=\"adyen-redirect-text\">{$this->__('If you stuck on this page please press the payment button')}</span></div>";
-
-            $html .= '<script type="text/javascript">
-    				//<![CDATA[
-    				';
-
-            if ($iPod || $iPhone || $iPad) {
-                $html .= 'document.getElementById(\'launchlink\').click();';
-            } else {
-                // android
-                $html .= 'url = document.getElementById(\'launchlink\').href;';
-                $html .= 'window.location = url;';
-            }
-
-            $html .= '
-                        //]]>
-                        </script>
-                    </div>';
-        } else {
-            // do not use Magento form because this generate a form_key input field
-            $html .= '<form name="adyenForm" id="' . $payment->getCode() . '" action="' . $payment->getFormUrl() . '" method="post">';
-
-            foreach ($payment->getFormFields() as $field => $value) {
-                $html .= '<input type="hidden" name="' . htmlspecialchars($field, ENT_COMPAT | ENT_HTML401, 'UTF-8') .
-                    '" value="' . htmlspecialchars($value, ENT_COMPAT | ENT_HTML401, 'UTF-8') . '" />';
-            }
-
-            $html .= '</form>';
-
-            if ($payment->getCode() == "adyen_hpp_c_cash" && $cashDrawer) {
-                $cashDrawerIp = $this->_getConfigData("cash_drawer_printer_ip", "adyen_pos", null);
-                $cashDrawerPort = $this->_getConfigData("cash_drawer_printer_port", "adyen_pos", null);
-                $cashDrawerDeviceId = $this->_getConfigData("cash_drawer_printer_device_id", "adyen_pos", null);
-
-                if ($cashDrawerIp != '' && $cashDrawerPort != '' && $cashDrawerDeviceId != '') {
-                    $html .= '
-                            <script type="text/javascript">
-                                var ipAddress = "' . $cashDrawerIp . '";
-                                var port = "' . $cashDrawerPort . '";
-                                var deviceID = "' . $cashDrawerDeviceId . '";
-                                var ePosDev = new epson.ePOSDevice();
-                                ePosDev.connect(ipAddress, port, Callback_connect);
-
-                                function Callback_connect(data) {
-                                    if (data == "OK" || data == "SSL_CONNECT_OK") {
-                                        var options = "{}";
-                                        ePosDev.createDevice(deviceID, ePosDev.DEVICE_TYPE_PRINTER, options, callbackCreateDevice_printer);
-                                    } else {
-                                        alert("connected to ePOS Device Service Interface is failed. [" + data + "]");
-                                    }
-                                }
-
-                                function callbackCreateDevice_printer(data, code) {
-                                    var print = data;
-                                    var drawer = "{}";
-                                    var time = print.PULSE_100
-                                    print.addPulse();
-                                    print.send();
-                                    document.getElementById("' . $payment->getCode() . '").submit();
-                                }
-                            </script>
-                    ';
-                } else {
-                    Mage::log(
-                        "You did not fill in all the fields (ip,port,device id) to use Cash Drawer support:",
-                        Zend_Log::DEBUG, "adyen_notification.log", true
-                    );
-                }
-            } else {
-                $html .= '<script type="text/javascript">document.getElementById("' . $payment->getCode() . '").submit();</script>';
-            }
+        foreach ($payment->getFormFields() as $field => $value) {
+            $html .= '<input type="hidden" name="' . htmlspecialchars($field, ENT_COMPAT | ENT_HTML401, 'UTF-8') .
+                '" value="' . htmlspecialchars($value, ENT_COMPAT | ENT_HTML401, 'UTF-8') . '" />';
         }
 
+        $html .= '</form>';
+        $html .= '<script type="text/javascript">document.getElementById("' . $payment->getCode() . '").submit();</script>';
         $html .= '</body></html>';
 
         // log the actual HTML
@@ -214,16 +89,18 @@ class Adyen_Payment_Block_Redirect extends Mage_Core_Block_Abstract
      *
      * @param mixed $debugData
      */
-    protected function _debug($storeId)
-    {
+    protected function _debug(
+        $storeId
+    ) {
         if ($this->_getConfigData('debug', 'adyen_abstract', $storeId)) {
             $file = 'adyen_request_pos.log';
             Mage::getModel('core/log_adapter', $file)->log($this->_debugData);
         }
     }
 
-    private function getReceiptOrderLines($order)
-    {
+    private function getReceiptOrderLines(
+        $order
+    ) {
 
         $myReceiptOrderLines = "";
 
@@ -270,11 +147,11 @@ class Adyen_Payment_Block_Redirect extends Mage_Core_Block_Abstract
                 false
             );
             $myReceiptOrderLines .= "  " . (int)$item->getQtyOrdered() . "  " . trim(
-                substr(
-                    $item->getName(), 0,
-                    25
-                )
-            ) . "| " . $currency . " " . $singlePriceFormat . "  " . $currency . " " . $itemAmountFormat . "|\n";
+                    substr(
+                        $item->getName(), 0,
+                        25
+                    )
+                ) . "| " . $currency . " " . $singlePriceFormat . "  " . $currency . " " . $itemAmountFormat . "|\n";
         }
 
         //discount cost
@@ -327,8 +204,12 @@ class Adyen_Payment_Block_Redirect extends Mage_Core_Block_Abstract
      * @param int|null $storeId
      * @return mixed
      */
-    protected function _getConfigData($code, $paymentMethodCode = null, $storeId = null)
-    {
+    protected
+    function _getConfigData(
+        $code,
+        $paymentMethodCode = null,
+        $storeId = null
+    ) {
         return Mage::helper('adyen')->getConfigData($code, $paymentMethodCode, $storeId);
     }
 

@@ -68,4 +68,15 @@ class Adyen_Payment_Block_Form_PosCloud extends Mage_Payment_Block_Form
         return $this->getData('_method_label_html');
     }
 
+    /**
+     * @return mixed
+     */
+    public function retrieveConnectedTerminals()
+    {
+        $api = Mage::getSingleton('adyen/api');
+        $storeId = Mage::app()->getStore()->getId();
+        $response = $api->retrieveConnectedTerminals($storeId);
+        return json_decode($response)->uniqueTerminalIds;
+    }
+
 }

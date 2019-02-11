@@ -29,7 +29,7 @@
 <config>
     <modules>
         <Adyen_Payment>
-            <version>2.12.2</version>
+            <version>2.13.0</version>
         </Adyen_Payment>
     </modules>
     <global>
@@ -388,22 +388,6 @@
                 <sort_order>35</sort_order>
                 <allowspecific>0</allowspecific>
             </adyen_ideal>
-            <adyen_pos translate="title" module="adyen">
-                <active>0</active>
-                <model>adyen/adyen_pos</model>
-                <group>adyen</group>
-                <title>PIN</title>
-                <recurringtypes>ONECLICK</recurringtypes>
-                <add_receipt_order_lines>1</add_receipt_order_lines>
-                <enable_scanner>0</enable_scanner>
-                <submit_scanner>0</submit_scanner>
-                <express_checkout>0</express_checkout>
-                <express_checkout_kiosk_mode>0</express_checkout_kiosk_mode>
-                <express_checkout_recurring>1</express_checkout_recurring>
-                <create_shipment>0</create_shipment>
-                <allowspecific>0</allowspecific>
-                <sort_order>80</sort_order>
-            </adyen_pos>
             <adyen_pos_cloud translate="title" module="adyen">
                 <active>0</active>
                 <model>adyen/adyen_posCloud</model>
@@ -414,6 +398,10 @@
                 <visible_type>frontend</visible_type>
                 <timeout>25</timeout>
                 <total_timeout>120</total_timeout>
+                <sort_order>80</sort_order>
+                <create_shipment>0</create_shipment>
+                <allowspecific>0</allowspecific>
+                <ip_filter>0</ip_filter>
             </adyen_pos_cloud>
             <adyen_cash>
                 <active>0</active>
@@ -423,11 +411,6 @@
                 <sort_order>90</sort_order>
                 <create_shipment>1</create_shipment>
                 <visible_type>both</visible_type>
-                <cash_express_checkout>0</cash_express_checkout>
-                <cash_drawer>0</cash_drawer>
-                <cash_drawer_printer_ip></cash_drawer_printer_ip>
-                <cash_drawer_printer_port>8008</cash_drawer_printer_port>
-                <cash_drawer_printer_device_id>local_printer</cash_drawer_printer_device_id>
                 <ip_filter>0</ip_filter>
             </adyen_cash>
             <adyen_openinvoice translate="title" module="adyen">
@@ -504,6 +487,7 @@
                 <title>Adyen Apple Pay</title>
                 <sort_order>80</sort_order>
                 <shipping_type>shipping</shipping_type>
+                <require_shipping>1</require_shipping>
                 <allow_quest_checkout>1</allow_quest_checkout>
                 <change_address>1</change_address>
                 <show_in_payment_step_checkout>1</show_in_payment_step_checkout>
@@ -594,6 +578,14 @@
                         <is_cvv_required>0</is_cvv_required>
                         <is_checkout>1</is_checkout>
                     </hipercard>
+                    <troy>
+                        <code>troy</code>
+                        <code_alt>troy</code_alt>
+                        <name>Troy</name>
+                        <order>100</order>
+                        <is_cvv_required>0</is_cvv_required>
+                        <is_checkout>1</is_checkout>
+                    </troy>
                 </cctypes>
                 <boletotypes>
                     <boletobancario_hsbc>

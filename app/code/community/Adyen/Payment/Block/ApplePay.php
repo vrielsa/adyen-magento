@@ -83,18 +83,18 @@ class Adyen_Payment_Block_ApplePay extends Mage_Core_Block_Template
         $cart = Mage::getModel('checkout/cart');
         $subtotal = 0;
         $totals = $cart->getQuote()->getTotals();
-        $config = Mage::getSingleton('tax/config');
-        if (isset($totals['subtotal'])) {
-            if ($config->displayCartSubtotalBoth() || $config->displayCartSubtotalInclTax()) {
-                $subtotal = $totals['subtotal']->getValueInclTax();
-            } else {
-                $subtotal = $totals['subtotal']->getValue();
-                if (isset($totals['tax'])) {
-                    $subtotal += $totals['tax']->getValue();
-                }
-            }
+        // calculate subtotal from grand total and shipping
+        // ignore Magento tax config, add tax to shipping depending on country
+        $total = $shipping = 0;
+        if(isset($totals['grand_total']) && $totals['grand_total']->getValue()) {
+          $total = $totals["grand_total"]->getValue();
         }
-
+        if(isset($totals['shipping']) && $totals['shipping']->getValue()) {
+          $shipping = $totals["shipping"]->getValue(); 
+          $address = $cart->getQuote()->getShippingAddress();
+          $shipping = Mage::helper('tax')->getShippingPrice($shipping, true, $address);
+        }
+        $subtotal = $total - $shipping;
         return $subtotal;
     }
 
@@ -157,8 +157,8 @@ class Adyen_Payment_Block_ApplePay extends Mage_Core_Block_Template
                 foreach ($rates as $carrier) {
                     foreach ($carrier as $rate) {
                         $costs[$rate->getCode()] = array(
-                            'title' => trim($rate->getCarrierTitle()),
-                            'price' => $rate->getPrice()
+                            'title' => trim($rate->getMethodTitle()),
+                            'price' => Mage::helper('tax')->getShippingPrice($rate->getPrice(), true, $address)
                         );
                     }
                 }
@@ -339,7 +339,9 @@ class Adyen_Payment_Block_ApplePay extends Mage_Core_Block_Template
      */
     public function getShippingMethodAmount()
     {
-        return Mage::getSingleton('checkout/session')->getQuote()->getShippingAddress()->getShippingAmount();
+        $address = Mage::getSingleton('checkout/session')->getQuote()->getShippingAddress();
+        $amount = $address->getShippingAmount();
+        return Mage::helper('tax')->getShippingPrice($amount, true, $address);
     }
 
     /**
@@ -360,6 +362,17 @@ class Adyen_Payment_Block_ApplePay extends Mage_Core_Block_Template
     public function getShippingType()
     {
         return Mage::helper('adyen')->getConfigData('shipping_type', 'adyen_apple_pay');
+    }
+
+    /**
+     * Gets the Shipping Country Code from Magento Admin.
+     * @return String
+     */
+    public function getShippingCountry() {
+      
+      $shippingCountry = Mage::getStoreConfig('general/country/default');
+
+      return strtoupper($shippingCountry);
     }
 
 }

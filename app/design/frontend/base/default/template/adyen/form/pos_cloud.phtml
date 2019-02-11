@@ -28,20 +28,29 @@
 <?php $_code = $this->getMethodCode() ?>
 
 <script type="text/javascript">
+
+    var terminals = document.getElementById("terminals");
+    <?php foreach ($this->retrieveConnectedTerminals() as $key => $terminal): ?>
+    terminals.options[<?php echo $key;?>] = new Option("<?php echo $terminal;?>", <?php echo $key;?>);
+    <?php endforeach;?>
+
+
     $("initiate").on("click", function () {
         var self = this;
         this.disabled = true;
+        var terminalId = terminals.options[terminals.selectedIndex].text;
+        terminals.disabled = true;
         $("pos-cloud-please-wait").show();
         new Ajax.Request("<?php echo $this->getUrl('adyen/Pos/initiate', array('_secure' => true)); ?>", {
-            parameters: {isAjax: 1, method: 'POST'},
+            parameters: {isAjax: 1, method: 'POST', terminalId: terminalId},
             onSuccess: function (response) {
                 if (response.responseText.indexOf("Retry") > -1) {
                     status();
                     return;
-                }
-                else if (response.responseText.indexOf("Stop") > -1) {
+                } else if (response.responseText.indexOf("Stop") > -1) {
                     alert(response.responseJSON.error);
                     self.disabled = false;
+                    terminals.disabled = false;
                     $("pos-cloud-please-wait").hide();
                     return;
                 }
@@ -54,18 +63,19 @@
     });
 
     function status() {
+        var terminalId = terminals.options[terminals.selectedIndex].text;
         new Ajax.Request("<?php echo $this->getUrl('adyen/Pos/checkStatus', array('_secure' => true)); ?>", {
-            parameters: {isAjax: 1, method: 'POST'},
+            parameters: {isAjax: 1, method: 'POST', terminalId: terminalId},
             onSuccess: function (response) {
                 var self = this;
                 if (response.responseText.indexOf("Retry") > -1) {
                     self.setTimeout(
                         status, 5000);
                     return;
-                }
-                else if (response.responseText.indexOf("Stop") > -1) {
+                } else if (response.responseText.indexOf("Stop") > -1) {
                     alert(response.responseJSON.error);
                     $("initiate").disabled = false;
+                    terminals.disabled = false;
                     $("pos-cloud-please-wait").hide();
                     return;
                 }
@@ -82,10 +92,8 @@
             parameters: {isAjax: 1, method: 'POST'},
             onSuccess: function (response) {
                 if (response.responseText.indexOf("SUCCESS") > -1) {
-                    window.location = "<?php echo $this->getUrl(
-                        'checkout/onepage/success',
-                        array('_secure' => true)
-                    ); ?>";
+                    window.location = "<?php echo $this->getUrl('checkout/onepage/success',
+                        array('_secure' => true)); ?>";
                 }
             },
             onFailure: function () {
@@ -98,7 +106,9 @@
 <fieldset class="form-list">
     <ul id="payment_form_<?php echo $_code ?>" style="display:none">
         <li>
-
+            <select id="terminals"></select>
+        </li>
+        <li>
             <input type="button" id="initiate" value="Place Order POS"
                    class="button btn-proceed-checkout btn-checkout adyen-checkout-button"/>
             <span id="pos-cloud-please-wait" style="display:none;" class="opc-please-wait">

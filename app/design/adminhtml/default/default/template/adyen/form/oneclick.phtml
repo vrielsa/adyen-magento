@@ -42,29 +42,10 @@
         </div>
 
         <div class="columns three b">
-            <label><?php echo $this->__('Expiration Date') ?><a href="#"
-                                                                id="update-expiration-date-<?php echo $_code; ?>"
-                                                                class="update-expiration-date"><?php echo $this->__('(update)') ?></a></label>
+            <label><?php echo $this->__('Expiration Date') ?></label>
 
             <div id="static-card-expiry-<?php echo $_code; ?>" class="static-card-expiry">
                 <?php echo $recurringDetails["card_expiryMonth"] . " /" . $recurringDetails["card_expiryYear"]; ?>
-            </div>
-            <div id="changable-card-expiry-<?php echo $_code; ?>" class="changable-card-expiry" style="display:none;">
-                <select id="<?php echo $_code ?>_expiration_<?php echo $_code; ?>" <?php echo("data-encrypted-name-oneclick-" . $_code . "=expiryMonth"); ?>
-                        class="month validate-oneclick-exp required-entry">
-                    <?php foreach ($this->getCcMonths() as $k => $v): ?>
-                        <option value="<?php echo $k ? $k : '' ?>"<?php if ($k == $recurringDetails["card_expiryMonth"]): ?> selected="selected"<?php
-                       endif ?>><?php echo $v ?></option>
-                    <?php endforeach ?>
-                </select>
-
-                <select id="<?php echo $_code ?>_expiration_yr_<?php echo $_code; ?>" <?php echo("data-encrypted-name-oneclick-" . $_code . "=expiryYear"); ?>
-                        class="year required-entry">
-                    <?php foreach ($this->getCcYears() as $k => $v): ?>
-                        <option value="<?php echo $k ? $k : '' ?>"<?php if ($k == $recurringDetails["card_expiryYear"]): ?> selected="selected"<?php
-                       endif ?>><?php echo $v ?></option>
-                    <?php endforeach ?>
-                </select>
             </div>
         </div>
 
@@ -84,60 +65,6 @@
                 </div>
             </div>
         <?php endif; ?>
-
-        <div class="checkout-oneclick-container">
-            <div id="oneclick-div-<?php echo $_code ?>" class="oneclick-div">
-                <div class="js-chckt-pm__pm-holder">
-                    <input type="hidden" name="txvariant" value="oneclick_<?php echo $_code; ?>"/>
-                    <div id="update-exp-date-<?php echo $_code; ?>" style="display: none">
-                        <div class="input-container">
-                            <span class="input-label"><?php echo $this->__('Expiry month') ?>:</span>
-                            <span class="input-field" data-cse="encryptedExpiryMonth"></span>
-                        </div>
-                        <div class="input-container">
-                            <span class="input-label"><?php echo $this->__('Expiry year') ?>:</span>
-                            <span class="input-field" data-cse="encryptedExpiryYear"></span>
-                        </div>
-                        <?php if ($this->showCvc()): ?>
-                            <div class="input-container">
-                                <span class="input-label label-security-code"><?php echo $this->__('Security code') ?>
-                                    :</span>
-                                <span class="input-field" data-cse="encryptedSecurityCode"></span>
-                            </div>
-                        <?php endif; ?>
-                    </div>
-                </div>
-            </div>
-            <input type="hidden" name="payment[encrypted_expiry_month_<?php echo $_code; ?>]"
-                   id="encryptedExpiryMonth<?php echo $_code; ?>" value="">
-            <input type="hidden" name="payment[encrypted_expiry_year_<?php echo $_code; ?>]"
-                   id="encryptedExpiryYear<?php echo $_code; ?>" value="">
-            <input type="hidden" name="payment[encrypted_cvc_<?php echo $_code; ?>]"
-                   id="encryptedSecurityCode<?php echo $_code; ?>"
-                   value="">
-            <script type="text/javascript">
-
-                // On radio button, hide the date(if present) and show the href
-                Event.observe($("p_method_<?php echo $_code; ?>"), 'change', function () {
-                    $("update-exp-date-<?php echo $_code; ?>").hide();
-                    $("update-expiration-date-<?php echo $_code; ?>").show();
-                });
-
-                // update-expiration-date action
-                $$('#update-expiration-date-<?php echo $_code; ?>').each(function (element) {
-                    element.observe('click', updateExpirationDate);
-                });
-
-                function updateExpirationDate(event) {
-                    // hide the link
-                    this.hide();
-                    // show expiration month and year/changeable card expiry
-                    $("update-exp-date-<?php echo $_code; ?>").show();
-                    event.preventDefault();
-                }
-
-            </script>
-
 
             <?php elseif ($recurringDetails["variant"] == "elv"): ?>
                 <div class="columns three a">

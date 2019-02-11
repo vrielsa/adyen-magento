@@ -1018,6 +1018,16 @@
                                     <show_in_website>1</show_in_website>
                                     <show_in_store>1</show_in_store>
                                 </installments_hipercard>
+                                <installments_troy translate="label">
+                                    <label>Installments For troy</label>
+                                    <frontend_model>adyen/adminhtml_form_field_installments</frontend_model>
+                                    <backend_model>adyen/system_config_backend_installments</backend_model>
+                                    <config_path>payment/adyen_cc/installments_troy</config_path>
+                                    <sort_order>220</sort_order>
+                                    <show_in_default>1</show_in_default>
+                                    <show_in_website>1</show_in_website>
+                                    <show_in_store>1</show_in_store>
+                                </installments_troy>
                                 <disable_zero_total>
                                     <label>Disable at zero grand total</label>
                                     <tooltip>Disable this payment method in the checkout when the grand total of the
@@ -1675,16 +1685,15 @@
                         </visible_type>
                     </fields>
                 </adyen_boleto>
-                <!-- @Pos only -->
-                <adyen_pos translate="label" module="adyen">
-                    <label>POS</label>
+                <adyen_pos_cloud>
+                    <label>POS with Terminal API</label>
                     <frontend_type>text</frontend_type>
-                    <sort_order>380</sort_order>
+                    <sort_order>390</sort_order>
                     <show_in_default>1</show_in_default>
                     <show_in_website>1</show_in_website>
                     <show_in_store>1</show_in_store>
                     <frontend_model>adyen/adminhtml_system_config_fieldset_method</frontend_model>
-                    <activity_path>payment/adyen_pos/active</activity_path>
+                    <activity_path>payment/adyen_pos_cloud/active</activity_path>
                     <fields>
                         <active translate="label">
                             <label>Enabled</label>
@@ -1714,98 +1723,78 @@
                             <show_in_website>1</show_in_website>
                             <show_in_store>1</show_in_store>
                         </sort_order>
-                        <recurringtypes translate="label">
-                            <label>Agreement Type</label>
-                            <tooltip>You can set different value for POS because you have to have the permission of the
-                                customer
-                            </tooltip>
-                            <frontend_type>select</frontend_type>
-                            <source_model>adyen/source_recurringType</source_model>
+                        <store_code translate="label">
+                            <label>Unique Store Code (Optional)</label>
+                            <frontend_type>text</frontend_type>
                             <sort_order>30</sort_order>
+                            <tooltip>Copy this from the Adyen Customer Area => Point of sale => Stores
+                                => Store code
+                            </tooltip>
                             <show_in_default>1</show_in_default>
                             <show_in_website>1</show_in_website>
                             <show_in_store>1</show_in_store>
-                        </recurringtypes>
-                        <add_receipt_order_lines translate="label">
-                            <label>Add orderlines to receipt</label>
-                            <tooltip>If you have the Adyen App configured to print to an external printer the orderlines
-                                can be printed on to the receipt if you turn this option on.
-                            </tooltip>
-                            <frontend_type>select</frontend_type>
-                            <source_model>adminhtml/system_config_source_yesno</source_model>
-                            <sort_order>33</sort_order>
-                            <show_in_default>1</show_in_default>
-                            <show_in_website>1</show_in_website>
-                            <show_in_store>1</show_in_store>
-                        </add_receipt_order_lines>
-                        <enable_scanner translate="label">
-                            <label>Enable Scanner</label>
-                            <tooltip>If you enable this you have the possibility to scan products with a hand scanner on
-                                the shopping cart page and this will automatically add products to the shopping cart
-                                based on the same SKU name.
-                            </tooltip>
-                            <frontend_type>select</frontend_type>
-                            <source_model>adminhtml/system_config_source_yesno</source_model>
+                        </store_code>
+                        <pos_merchant_account translate="label">
+                            <label>Merchant Account for Terminal API</label>
+                            <frontend_type>text</frontend_type>
                             <sort_order>35</sort_order>
+                            <tooltip>Please insert your Merchant Account name used by the Cloud API. Please leave it
+                                blank if the Merchant Account is the same as the one configured in the Required Settings
+                            </tooltip>
                             <show_in_default>1</show_in_default>
                             <show_in_website>1</show_in_website>
                             <show_in_store>1</show_in_store>
-                        </enable_scanner>
-                        <auto_submit_scanner>
-                            <label>Auto submit scanner</label>
-                            <tooltip>If you have a scanner that puss a enter command after scanning turn this setting
-                                on.
+                        </pos_merchant_account>
+                        <api_key_test translate="label">
+                            <label>API key for Terminal API TEST</label>
+                            <frontend_type>obscure</frontend_type>
+                            <backend_model>adminhtml/system_config_backend_encrypted</backend_model>
+                            <sort_order>40</sort_order>
+                            <tooltip>Copy this from the Test Adyen Customer Area => Settings => Users => System => [web
+                                service user]=> Checkout API Key.
                             </tooltip>
-                            <frontend_type>select</frontend_type>
-                            <source_model>adminhtml/system_config_source_yesno</source_model>
-                            <sort_order>36</sort_order>
                             <show_in_default>1</show_in_default>
                             <show_in_website>1</show_in_website>
                             <show_in_store>1</show_in_store>
-                            <depends>
-                                <enable_scanner>1</enable_scanner>
-                            </depends>
-                        </auto_submit_scanner>
-                        <express_checkout>
-                            <label>Express checkout</label>
-                            <tooltip>This will show a checkout button on the shopping cart to directly do a POS payment
-                                without going to the checkout steps. You must be logged into your Magento account on the
-                                front-end to see the button.
-                            </tooltip>
-                            <frontend_type>select</frontend_type>
-                            <source_model>adminhtml/system_config_source_yesno</source_model>
-                            <sort_order>37</sort_order>
-                            <show_in_default>1</show_in_default>
-                            <show_in_website>1</show_in_website>
-                            <show_in_store>1</show_in_store>
-                        </express_checkout>
-                        <express_checkout_kiosk_mode>
-                            <label>Kiosk mode</label>
-                            <tooltip>If you turn kiosk modus on it will not auto-complete the customers based on the
-                                filled in email address
-                            </tooltip>
-                            <frontend_type>select</frontend_type>
-                            <source_model>adminhtml/system_config_source_yesno</source_model>
+                        </api_key_test>
+                        <api_key_live translate="label">
+                            <label>API key for Terminal API LIVE</label>
+                            <frontend_type>text</frontend_type>
                             <sort_order>45</sort_order>
+                            <tooltip>Copy this from the Live Adyen Customer Area => Settings => Users => System => [web
+                                service user]=> Checkout API Key.
+                            </tooltip>
                             <show_in_default>1</show_in_default>
                             <show_in_website>1</show_in_website>
                             <show_in_store>1</show_in_store>
-                        </express_checkout_kiosk_mode>
-                        <express_checkout_recurring>
-                            <label>Show Recurring Cards</label>
-                            <tooltip>This will show the recurring cards beneath the express checkout and makes it
-                                possible to do a recurring online payment by clicking on the card
-                            </tooltip>
+                        </api_key_live>
+                        <capture_mode_pos translate="label">
+                            <label>Capture Delay</label>
                             <frontend_type>select</frontend_type>
-                            <source_model>adminhtml/system_config_source_yesno</source_model>
+                            <tooltip>Please set your Capture Delay for POS transactions. Immediate is the default. Set
+                                to manual if you want to perform the capture of funds manually later. You need to change
+                                this setting as well in Adyen Customer Area => Settings => Merchant Settings => POS
+                                Capture Delay. If you have selected a capture delay of a couple of days in Adyen keep it
+                                here on immediate
+                            </tooltip>
+                            <source_model>adyen/source_captureModes</source_model>
                             <sort_order>50</sort_order>
                             <show_in_default>1</show_in_default>
                             <show_in_website>1</show_in_website>
                             <show_in_store>1</show_in_store>
-                            <depends>
-                                <express_checkout_kiosk_mode>0</express_checkout_kiosk_mode>
-                            </depends>
-                        </express_checkout_recurring>
+                        </capture_mode_pos>
+                        <recurring_type>
+                            <label>Agreement Type</label>
+                            <frontend_type>select</frontend_type>
+                            <source_model>adyen/source_recurringType</source_model>
+                            <sort_order>55</sort_order>
+                            <show_in_default>1</show_in_default>
+                            <show_in_website>1</show_in_website>
+                            <show_in_store>1</show_in_store>
+                            <tooltip>You can set different value for POS because you have to have the permission of the
+                                customer
+                            </tooltip>
+                        </recurring_type>
                         <create_shipment>
                             <label>Create Shipment</label>
                             <tooltip>If you enable this there will be automatically be created a shipment if the invoice
@@ -1887,118 +1876,6 @@
                             </depends>
                         </specificcountry>
                     </fields>
-                </adyen_pos>
-                <adyen_pos_cloud>
-                    <label>POS with Terminal API</label>
-                    <frontend_type>text</frontend_type>
-                    <sort_order>390</sort_order>
-                    <show_in_default>1</show_in_default>
-                    <show_in_website>1</show_in_website>
-                    <show_in_store>1</show_in_store>
-                    <frontend_model>adyen/adminhtml_system_config_fieldset_method</frontend_model>
-                    <activity_path>payment/adyen_pos_cloud/active</activity_path>
-                    <fields>
-                        <active translate="label">
-                            <label>Enabled</label>
-                            <frontend_type>select</frontend_type>
-                            <source_model>adminhtml/system_config_source_yesno</source_model>
-                            <sort_order>10</sort_order>
-                            <show_in_default>1</show_in_default>
-                            <show_in_website>1</show_in_website>
-                            <show_in_store>1</show_in_store>
-                        </active>
-                        <title translate="label">
-                            <label>Title</label>
-                            <frontend_type>text</frontend_type>
-                            <sort_order>20</sort_order>
-                            <show_in_default>1</show_in_default>
-                            <show_in_website>1</show_in_website>
-                            <show_in_store>1</show_in_store>
-                        </title>
-                        <sort_order translate="label">
-                            <label>Sort Order</label>
-                            <tooltip>Set the sequence number of this payment method in the checkout. Payment methods
-                                with a higher sort order number will be displayed lower in the list.
-                            </tooltip>
-                            <frontend_type>text</frontend_type>
-                            <sort_order>25</sort_order>
-                            <show_in_default>1</show_in_default>
-                            <show_in_website>1</show_in_website>
-                            <show_in_store>1</show_in_store>
-                        </sort_order>
-                        <pos_terminal_id translate="label">
-                            <label>Unique Terminal ID for Terminal API</label>
-                            <frontend_type>text</frontend_type>
-                            <sort_order>30</sort_order>
-                            <tooltip>Copy this from the Adyen Customer Area => Point of sale => Terminal Fleet Manager
-                                => Unique Terminal Id
-                            </tooltip>
-                            <show_in_default>1</show_in_default>
-                            <show_in_website>1</show_in_website>
-                            <show_in_store>1</show_in_store>
-                        </pos_terminal_id>
-                        <pos_merchant_account translate="label">
-                            <label>Merchant Account for Terminal API</label>
-                            <frontend_type>text</frontend_type>
-                            <sort_order>35</sort_order>
-                            <tooltip>Please insert your Merchant Account name used by the Cloud API. Please leave it
-                                blank if the Merchant Account is the same as the one configured in the Required Settings
-                            </tooltip>
-                            <show_in_default>1</show_in_default>
-                            <show_in_website>1</show_in_website>
-                            <show_in_store>1</show_in_store>
-                        </pos_merchant_account>
-                        <api_key_test translate="label">
-                            <label>API key for Terminal API TEST</label>
-                            <frontend_type>obscure</frontend_type>
-                            <backend_model>adminhtml/system_config_backend_encrypted</backend_model>
-                            <sort_order>40</sort_order>
-                            <tooltip>Copy this from the Test Adyen Customer Area => Settings => Users => System => [web
-                                service user]=> Checkout API Key.
-                            </tooltip>
-                            <show_in_default>1</show_in_default>
-                            <show_in_website>1</show_in_website>
-                            <show_in_store>1</show_in_store>
-                        </api_key_test>
-                        <api_key_live translate="label">
-                            <label>API key for Terminal API LIVE</label>
-                            <frontend_type>text</frontend_type>
-                            <sort_order>45</sort_order>
-                            <tooltip>Copy this from the Live Adyen Customer Area => Settings => Users => System => [web
-                                service user]=> Checkout API Key.
-                            </tooltip>
-                            <show_in_default>1</show_in_default>
-                            <show_in_website>1</show_in_website>
-                            <show_in_store>1</show_in_store>
-                        </api_key_live>
-                        <capture_mode_pos translate="label">
-                            <label>Capture Delay</label>
-                            <frontend_type>select</frontend_type>
-                            <tooltip>Please set your Capture Delay for POS transactions. Immediate is the default. Set
-                                to manual if you want to perform the capture of funds manually later. You need to change
-                                this setting as well in Adyen Customer Area => Settings => Merchant Settings => POS
-                                Capture Delay. If you have selected a capture delay of a couple of days in Adyen keep it
-                                here on immediate
-                            </tooltip>
-                            <source_model>adyen/source_captureModes</source_model>
-                            <sort_order>50</sort_order>
-                            <show_in_default>1</show_in_default>
-                            <show_in_website>1</show_in_website>
-                            <show_in_store>1</show_in_store>
-                        </capture_mode_pos>
-                        <recurring_type>
-                            <label>Agreement Type</label>
-                            <frontend_type>select</frontend_type>
-                            <source_model>adyen/source_recurringType</source_model>
-                            <sort_order>55</sort_order>
-                            <show_in_default>1</show_in_default>
-                            <show_in_website>1</show_in_website>
-                            <show_in_store>1</show_in_store>
-                            <tooltip>You can set different value for POS because you have to have the permission of the
-                                customer
-                            </tooltip>
-                        </recurring_type>
-                    </fields>
                 </adyen_pos_cloud>
                 <adyen_cash translate="label" module="adyen">
                     <label>CASH</label>
@@ -2050,71 +1927,6 @@
                             <show_in_website>1</show_in_website>
                             <show_in_store>1</show_in_store>
                         </create_shipment>
-                        <cash_express_checkout>
-                            <label>Cash Express checkout</label>
-                            <tooltip>This will show a checkout button on the shopping cart to directly do a Cash payment
-                                without going to the checkout steps. Make sure that you have Cash enabled on your skin
-                                and HPP payment method is enabled and correctly configured. You must be logged into your
-                                Magento account on the front-end to see the button
-                            </tooltip>
-                            <frontend_type>select</frontend_type>
-                            <source_model>adminhtml/system_config_source_yesno</source_model>
-                            <sort_order>39</sort_order>
-                            <show_in_default>1</show_in_default>
-                            <show_in_website>1</show_in_website>
-                            <show_in_store>1</show_in_store>
-                        </cash_express_checkout>
-                        <cash_drawer>
-                            <label>Open Cash Drawer</label>
-                            <tooltip>Open the Cash drawer if you connect this to your printer this works for all Epson
-                                ePOS-Device printers
-                            </tooltip>
-                            <frontend_type>select</frontend_type>
-                            <source_model>adminhtml/system_config_source_yesno</source_model>
-                            <sort_order>40</sort_order>
-                            <show_in_default>1</show_in_default>
-                            <show_in_website>1</show_in_website>
-                            <show_in_store>1</show_in_store>
-                        </cash_drawer>
-                        <cash_drawer_printer_ip>
-                            <label>IP address printer</label>
-                            <tooltip>Enter here the IP address of the printer where the cash drawer is connected to
-                            </tooltip>
-                            <frontend_type>text</frontend_type>
-                            <sort_order>41</sort_order>
-                            <show_in_default>1</show_in_default>
-                            <show_in_website>1</show_in_website>
-                            <show_in_store>1</show_in_store>
-                            <depends>
-                                <cash_drawer>1</cash_drawer>
-                            </depends>
-                        </cash_drawer_printer_ip>
-                        <cash_drawer_printer_port>
-                            <label>Printer port</label>
-                            <tooltip>Enter here the port number of the printer where the cash drawer is connected to
-                            </tooltip>
-                            <frontend_type>text</frontend_type>
-                            <sort_order>42</sort_order>
-                            <show_in_default>1</show_in_default>
-                            <show_in_website>1</show_in_website>
-                            <show_in_store>1</show_in_store>
-                            <depends>
-                                <cash_drawer>1</cash_drawer>
-                            </depends>
-                        </cash_drawer_printer_port>
-                        <cash_drawer_printer_device_id>
-                            <label>Printer Device ID</label>
-                            <tooltip>Enter here the deviceID of the printer where the cash drawer is connected to
-                            </tooltip>
-                            <frontend_type>text</frontend_type>
-                            <sort_order>43</sort_order>
-                            <show_in_default>1</show_in_default>
-                            <show_in_website>1</show_in_website>
-                            <show_in_store>1</show_in_store>
-                            <depends>
-                                <cash_drawer>1</cash_drawer>
-                            </depends>
-                        </cash_drawer_printer_device_id>
                         <ip_filter>
                             <label>IP filter</label>
                             <tooltip>Enable IP filter let's you define an IP range when this payment method is visible
@@ -2386,6 +2198,16 @@
                             <show_in_website>1</show_in_website>
                             <show_in_store>1</show_in_store>
                         </shipping_type>
+                        <require_shipping>
+                            <label>Require Shipping</label>
+                            <tooltip>Require customer to select a valid shipping method to complete order.</tooltip>
+                            <frontend_type>select</frontend_type>
+                            <source_model>adminhtml/system_config_source_yesno</source_model>
+                            <sort_order>51</sort_order>
+                            <show_in_default>1</show_in_default>
+                            <show_in_website>1</show_in_website>
+                            <show_in_store>1</show_in_store>
+                        </require_shipping>
                         <allow_quest_checkout>
                             <label>Allow Guest Checkout</label>
                             <tooltip>Show Apple Pay icon if user is not logged in. The user has the option to set his

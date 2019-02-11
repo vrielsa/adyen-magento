@@ -33,49 +33,31 @@ $originKey = $this->getOriginKey();
 
 <ul id="payment_form_<?php echo $_code ?>" style="display:none;">
 
-    <div class="checkout-container">
-        <div class="form-div">
-            <div class="js-chckt-pm__pm-holder">
-                <input type="hidden" name="txvariant" value="card"/>
-                <div class="input-container">
-                    <span class="input-label"><?php echo $this->__('Name on Card') ?></span>
-                    <span class="input-field required-entry"> <input type="text"
-                                                                     title="<?php echo $this->__('Name on Card') ?>"
-                                                                     class="input-field required-entry"
-                                                                     autocomplete="cc-name"
-                                                                     id="<?php echo $_code ?>_cc_owner" <?php echo("name=\"payment[cc_owner]\""); ?>
-                                                                     value="<?php echo $this->htmlEscape($this->getInfoData('cc_owner')) ?>"
-                                                                     maxlength="100"/>  </span>
-
-                </div>
-                <div class="input-container">
-                    <span class="input-label"><?php echo $this->__('Card number') ?>:</span>
-                    <span class="input-field" data-cse="encryptedCardNumber"></span>
-                </div>
-                <div class="input-container">
-                    <span class="input-label"><?php echo $this->__('Expiry month') ?>:</span>
-                    <span class="input-field" data-cse="encryptedExpiryMonth"></span>
-                </div>
-                <div class="input-container">
-                    <span class="input-label"><?php echo $this->__('Expiry year') ?>:</span>
-                    <span class="input-field" data-cse="encryptedExpiryYear"></span>
-                </div>
-                <?php if ($this->hasVerification()): ?>
-                    <div class="input-container">
-                        <span class="input-label label-security-code"><?php echo $this->__('Security code') ?>:</span>
-                        <span class="input-field" data-cse="encryptedSecurityCode"></span>
-                    </div>
-                <?php endif; ?>
-                <div class="input-box">
-                    <div class="v-fix">
-                        <input type="checkbox" name="payment[store_cc]" id="<?php echo $_code ?>_store_cc"
-                               value="1" checked/>
-                        <label for="<?php echo $_code ?>_store_cc"><em>*</em><?php echo $this->__('Remember these details') ?>
-                        </label>
-                    </div>
-                </div>
+    <li>
+        <div class="checkout-container" id="cardContainer">
+            <div class="form-div">
+                <input type="hidden" name="payment[cc_owner]" id="holderName"
+                       value="">
+                <input type="hidden" name="payment[encrypted_number]" id="encryptedCardNumber"
+                       value="">
+                <input type="hidden" name="payment[encrypted_expiry_month]" id="encryptedExpiryMonth"
+                       value="">
+                <input type="hidden" name="payment[encrypted_expiry_year]" id="encryptedExpiryYear"
+                       value="">
+                <input type="hidden" name="payment[encrypted_cvc]" id="encryptedSecurityCode"
+                       value="">
             </div>
         </div>
+        <input type="hidden" class="required-entry" name="allValidcard" id="allValidcard" value="">
+        <div class="input-box">
+            <div class="v-fix">
+                <input type="checkbox" name="payment[store_cc]" id="<?php echo $_code ?>_store_cc"
+                       value="1" checked/>
+                <label for="<?php echo $_code ?>_store_cc"><em>*</em><?php echo $this->__('Remember these details') ?>
+                </label>
+            </div>
+        </div>
+    </li>
         <?php if ($this->hasInstallments()): ?>
             <li>
                 <div class="input-box">
@@ -92,19 +74,13 @@ $originKey = $this->getOriginKey();
                 </div>
             </li>
         <?php endif; ?>
-
-        <input type="hidden" name="payment[encrypted_number]" id="encryptedCardNumber" value="">
-        <input type="hidden" name="payment[encrypted_expiry_month]" id="encryptedExpiryMonth" value="">
-        <input type="hidden" name="payment[encrypted_expiry_year]" id="encryptedExpiryYear" value="">
-        <input type="hidden" name="payment[encrypted_cvc]" id="encryptedSecurityCode" value="">
     </div>
 </ul>
-<input type="hidden" id="<?php echo $_code ?>_encrypted_form_expiry_generationtime" value="<?php echo date("c"); ?>"
-       data-encrypted-name="generationtime"/>
 
 <script type="text/javascript">
 
     var ajaxReq;
+    var alt_types = <?php echo json_encode(array_column($this->getCcAvailableTypes(), 'code_alt')); ?>;
 
     function getInstallments(variant) {
         // get the installments for this cardtype
@@ -133,7 +109,7 @@ $originKey = $this->getOriginKey();
 
                         // change the installments
                         var opt = document.createElement('option');
-                        opt.text = response[key]
+                        opt.text = response[key];
                         opt.value = key;
                         // check if selected installment is still available
                         if (currentSelectedInstallment == key) {
@@ -153,49 +129,109 @@ $originKey = $this->getOriginKey();
         });
     }
 
+    function renderSecureFields() {
+        var locale = "<?php echo Mage::app()->getLocale()->getLocaleCode();?>";
+        var cardNode = document.getElementById('cardContainer');
+        var hideCVC = !"<?php echo $this->hasVerification();?>";
 
-    function initiateSecuredFields() {
-        var securedFields = csf(
-            {
-                configObject: {
-                    originKey: "<?php echo $originKey;?>",
-                },
-                rootNode: 'body',
-                allowedDOMAccess: false,
-                recurringCardIndicator: 'oneclick_',
-                paymentMethods: {
-                    card: {
-                        placeholders: {
-                            encryptedCardNumber: '4111 1111 1111 1111',
-                            encryptedExpiryMonth: '10',
-                            encryptedExpiryYear: '20',
-                            encryptedSecurityCode: '737'
-                        }
+        // cardGroupTypes is mainly to show the logo
+        var cardGroupTypes = alt_types.slice();
 
+        // we can now rely on $ within the safety of our "bodyguard" function
+        var checkout = new AdyenCheckout({
+            locale: locale,
+            originKey: "<?php echo $originKey;?>",
+            loadingContext: "<?php echo Mage::helper('adyen')->getCheckoutContextUrl();?>"
+        });
+        var card = checkout.create('card', {
+            type: 'card',
+            hasHolderName: true,
+            holderNameRequired: true,
+            hideCVC: hideCVC,
+            groupTypes: cardGroupTypes,
+
+            onChange: function (state) {
+                // Define the card type for installments
+                var creditCardType = state.brand;
+                if (creditCardType) {
+                    if (creditCardType == "BCMC") {
+                        creditCardType = "MI";
                     }
+                    <?php if($this->hasInstallments()): ?>
+                    getInstallments(creditCardType);
+                    <?php endif; ?>
+                }
+                if (state.isValid) {
+                    document.getElementById('holderName').value = state.data.holderName;
+                    document.getElementById('encryptedCardNumber').value = state.data.encryptedCardNumber;
+                    document.getElementById('encryptedExpiryMonth').value = state.data.encryptedExpiryMonth;
+                    document.getElementById('encryptedExpiryYear').value = state.data.encryptedExpiryYear;
+                    if (state.data.encryptedSecurityCode) {
+                        document.getElementById('encryptedSecurityCode').value = state.data.encryptedSecurityCode;
+                    }
+                    document.getElementById("allValidcard").value = true;
+                } else {
+                    resetFields();
                 }
             }
-        );
-        securedFields.onBrand(function (brandObject) {
-            if (brandObject.brand) {
-                getInstallments(brandObject.brand);
-            }
         });
-        securedFields.onFieldValid(function (result) {
-            if (result.txVariant == 'card') {
-                document.getElementById(result.encryptedFieldName).value = result.blob;
-            }
-            else {
-                document.getElementById(result.encryptedFieldName.concat(result.txVariant.replace("oneclick_", ""))).value = result.blob;
-            }
-        });
+        card.mount(cardNode);
     }
+
+    function resetFields(){
+        document.getElementById('holderName').value = "";
+        document.getElementById('encryptedCardNumber').value = "";
+        document.getElementById('encryptedExpiryMonth').value = "";
+        document.getElementById('encryptedExpiryYear').value = "";
+        document.getElementById('encryptedSecurityCode').value = "";
+        document.getElementById("allValidcard").value = "";
+    }
+
+    function polyFill() {
+        if (Array.prototype.filter) {
+            Array.prototype.filter = function (func, thisArg) {
+                'use strict';
+                if (!((typeof func === 'Function' || typeof func === 'function') && this))
+                    throw new TypeError();
+
+                var len = this.length >>> 0,
+                    res = new Array(len), // preallocate array
+                    t = this, c = 0, i = -1;
+                if (thisArg === undefined) {
+                    while (++i !== len) {
+                        // checks to see if the key was set
+                        if (i in this) {
+                            if (func(t[i], i, t)) {
+                                res[c++] = t[i];
+                            }
+                        }
+                    }
+                } else {
+                    while (++i !== len) {
+                        // checks to see if the key was set
+                        if (i in this) {
+                            if (func.call(thisArg, t[i], i, t)) {
+                                res[c++] = t[i];
+                            }
+                        }
+                    }
+                }
+
+                res.length = c; // shrink down array to proper size
+                return res;
+            };
+        }
+    }
+
 
     var secf = document.createElement("script");
     <?php $adyenHelper = Mage::helper('adyen'); ?>
-    secf.src = "<?php echo $adyenHelper->getSecuredFieldsURL();?>";
+    secf.src = "<?php echo $adyenHelper->getCheckoutCardComponentJs();?>";
     secf.type = "text/javascript";
-    secf.onload = initiateSecuredFields;
+    secf.onload = function () {
+        polyFill();
+        renderSecureFields();
+    };
     document.body.appendChild(secf);
 
 </script>

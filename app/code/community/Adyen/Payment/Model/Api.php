@@ -36,6 +36,8 @@ class Adyen_Payment_Model_Api extends Mage_Core_Model_Abstract
     const ENDPOINT_TERMINAL_CLOUD_LIVE = "https://terminal-api-live.adyen.com/sync";
     const ENDPOINT_PROTOCOL = "https://";
     const CHECKOUT_ENDPOINT_LIVE_SUFFIX = "-checkout-live.adyenpayments.com/checkout";
+    const ENDPOINT_CONNECTED_TERMINALS_TEST = "https://terminal-api-test.adyen.com/connectedTerminals";
+    const ENDPOINT_CONNECTED_TERMINALS_LIVE = "https://terminal-api-live.adyen.com/connectedTerminals";
 
     protected $_recurringTypes = array(
         self::RECURRING_TYPE_ONECLICK,
@@ -429,5 +431,31 @@ class Adyen_Payment_Model_Api extends Mage_Core_Model_Abstract
         $timeout = $this->_helper()->getConfigData('timeout', 'adyen_pos_cloud', $storeId);
         $response = $this->doRequestJson($request, $requestUrl, $apiKey, $storeId, $timeout);
         return json_decode($response, true);
+    }
+
+    /**
+     * Do a synchronous request to retrieve the connected terminals
+     *
+     * @param $storeId
+     * @return mixed
+     */
+    public function retrieveConnectedTerminals($storeId)
+    {
+        $requestUrl = self::ENDPOINT_CONNECTED_TERMINALS_LIVE;
+        if ($this->_helper()->getConfigDataDemoMode($storeId)) {
+            $requestUrl = self::ENDPOINT_CONNECTED_TERMINALS_TEST;
+        }
+
+        $apiKey = $this->_helper()->getPosApiKey($storeId);
+        $merchantAccount = $this->_helper()->getAdyenMerchantAccount("pos_cloud", $storeId);
+        $request = array("merchantAccount" => $merchantAccount);
+
+        //If store_code is configured, retrieve only terminals connected to that store
+        $storeCode = $this->_helper()->getConfigData('store_code', 'adyen_pos_cloud', $storeId);
+        if ($storeCode) {
+            $request["store"] = $storeCode;
+        }
+        $response = $this->doRequestJson($request, $requestUrl, $apiKey, $storeId);
+        return $response;
     }
 }

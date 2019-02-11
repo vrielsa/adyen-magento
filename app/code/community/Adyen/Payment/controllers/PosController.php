@@ -46,9 +46,11 @@ class Adyen_Payment_PosController extends Mage_Core_Controller_Front_Action
         $api = Mage::getSingleton('adyen/api');
         $quote = (Mage::getModel('checkout/type_onepage') !== false) ? Mage::getModel('checkout/type_onepage')->getQuote() : Mage::getModel('checkout/session')->getQuote();
         $storeId = Mage::app()->getStore()->getId();
-
         $adyenHelper = Mage::helper('adyen');
-        $poiId = $adyenHelper->getConfigData('pos_terminal_id', "adyen_pos_cloud", $storeId);
+
+        $params = $this->getRequest()->getParams();
+        $poiId = $params['terminalId'];
+
         $serviceID = date("dHis");
         $initiateDate = date("U");
         $timeStamper = date("Y-m-d") . "T" . date("H:i:s+00:00");
@@ -158,8 +160,10 @@ class Adyen_Payment_PosController extends Mage_Core_Controller_Front_Action
         $quote = (Mage::getModel('checkout/type_onepage') !== false) ? Mage::getModel('checkout/type_onepage')->getQuote() : Mage::getModel('checkout/session')->getQuote();
         $storeId = Mage::app()->getStore()->getId();
 
+        $params = $this->getRequest()->getParams();
+        $poiId = $params['terminalId'];
+
         $adyenHelper = Mage::helper('adyen');
-        $poiId = $adyenHelper->getConfigData('pos_terminal_id', "adyen_pos_cloud", $storeId);
         $totalTimeout = $adyenHelper->getConfigData('total_timeout', 'adyen_pos_cloud', $storeId);
 
         $paymentResponse = $quote->getPayment()->getAdditionalInformation('terminalResponse');

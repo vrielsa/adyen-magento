@@ -72,6 +72,9 @@
             <action method="addCss">
                 <stylesheet>adyenstyle.css</stylesheet>
             </action>
+            <action method="addCss">
+                <stylesheet>adyencheckout.css</stylesheet>
+            </action>
             <action method="addJs">
                 <script>adyen/payment/iban.js</script>
             </action>

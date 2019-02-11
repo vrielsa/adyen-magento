@@ -32,8 +32,9 @@ class Adyen_Payment_Helper_Data extends Mage_Payment_Helper_Data
     const KLARNA = "klarna";
     const RATEPAY = "ratepay";
     const AFTERPAY = "afterpay";
-    const ENDPOINT_SECURED_FIELDS_TEST = "https://checkoutshopper-test.adyen.com/checkoutshopper/assets/js/sdk/checkoutSecuredFields.1.3.3.min.js";
-    const ENDPOINT_SECURED_FIELDS_LIVE = "https://checkoutshopper-live.adyen.com/checkoutshopper/assets/js/sdk/checkoutSecuredFields.1.3.3.min.js";
+    const CHECKOUT_CONTEXT_URL_LIVE = 'https://checkoutshopper-live.adyen.com/checkoutshopper/';
+    const CHECKOUT_CONTEXT_URL_TEST = 'https://checkoutshopper-test.adyen.com/checkoutshopper/';
+    const CHECKOUT_COMPONENT_JS = 'sdk/2.1.0/adyen.js';
 
     /**
      * @return array
@@ -122,65 +123,6 @@ class Adyen_Payment_Helper_Data extends Mage_Payment_Helper_Data
     public function getExtensionVersion()
     {
         return (string)Mage::getConfig()->getModuleConfig('Adyen_Payment')->version;
-    }
-
-
-    /**
-     * @return bool|int
-     */
-    public function hasEnableScanner()
-    {
-        if (Mage::getStoreConfig('payment/adyen_pos/active')) {
-            return (int)Mage::getStoreConfig('payment/adyen_pos/enable_scanner');
-        }
-
-        return false;
-    }
-
-
-    /**
-     * @return int
-     */
-    public function hasAutoSubmitScanner()
-    {
-        return (int)Mage::getStoreConfig('payment/adyen_pos/auto_submit_scanner');
-    }
-
-
-    /**
-     * @return bool|int
-     */
-    public function hasExpressCheckout()
-    {
-        if (Mage::getStoreConfig('payment/adyen_pos/active')) {
-            // check if metmethod is available
-            $methodModel = Mage::getModel('adyen/adyen_pos');
-            if ($methodModel) {
-                if ($methodModel->isAvailable()) {
-                    return (int)Mage::getStoreConfig('payment/adyen_pos/express_checkout');
-                }
-            }
-        }
-
-        return false;
-    }
-
-    /**
-     * @return bool|int
-     */
-    public function hasCashExpressCheckout()
-    {
-        if (Mage::getStoreConfig('payment/adyen_cash/active')) {
-            // check if metmethod is available
-            $methodModel = Mage::getModel('adyen/adyen_cash');
-            if ($methodModel) {
-                if ($methodModel->isAvailable()) {
-                    return (int)Mage::getStoreConfig('payment/adyen_cash/cash_express_checkout');
-                }
-            }
-        }
-
-        return false;
     }
 
     /**
@@ -722,15 +664,28 @@ class Adyen_Payment_Helper_Data extends Mage_Payment_Helper_Data
     }
 
     /**
-     * Returns the correct secured fields URL
+     * @param int|null $storeId
      * @return string
      */
-    public function getSecuredFieldsURL()
+    public function getCheckoutContextUrl($storeId = null)
     {
-        if ($this->getConfigDataDemoMode()) {
-            return self::ENDPOINT_SECURED_FIELDS_TEST;
+        if (null === $storeId) {
+            $storeId = Mage::app()->getStore()->getStoreId();
         }
 
-        return self::ENDPOINT_SECURED_FIELDS_LIVE;
+        if ($this->getConfigDataDemoMode($storeId)) {
+            return self::CHECKOUT_CONTEXT_URL_TEST;
+        }
+
+        return self::CHECKOUT_CONTEXT_URL_LIVE;
+    }
+
+    /**
+     * @param int|null $storeId
+     * @return string
+     */
+    public function getCheckoutCardComponentJs($storeId = null)
+    {
+        return $this->getCheckoutContextUrl($storeId) . self::CHECKOUT_COMPONENT_JS;
     }
 }

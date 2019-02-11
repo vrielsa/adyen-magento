@@ -394,20 +394,8 @@ class Adyen_Payment_ProcessController extends Mage_Core_Controller_Front_Action
         } else {
             $session->addError($this->__('Your payment failed, Please try again later'));
         }
-
-        // if payment method is adyen_pos or adyen_cash redirect to checkout if the kiosk mode is turned off
-        if (!$this->_getConfigData(
-            'express_checkout_kiosk_mode',
-            'adyen_pos'
-        ) && ($order->getPayment()->getMethod() == "adyen_pos" || $order->getPayment()->getMethod() == "adyen_cash")) {
-            // add email to session so this can be shown
-            $session->setAdyenEmailShopper($order->getCustomerEmail());
-
-            $redirect = Mage::getUrl('checkout/cart');
-            $this->_redirectUrl($redirect);
-        } else {
-            $this->_redirectCheckoutCart();
-        }
+        
+        $this->_redirectCheckoutCart();
     }
 
     protected function _redirectCheckoutCart()
@@ -428,20 +416,7 @@ class Adyen_Payment_ProcessController extends Mage_Core_Controller_Front_Action
     public function insAction()
     {
         try {
-            // if version is in the notification string show the module version
             $response = $this->getRequest()->getParams();
-            if (isset($response['version'])) {
-                $helper = Mage::helper('adyen');
-                $this->getResponse()->setBody($helper->getExtensionVersion());
-                return $this;
-            }
-
-            if (isset($response['magento_version'])) {
-                $version = Mage::getVersion();
-                $this->getResponse()->setBody($version);
-                return $this;
-            }
-
             $notificationMode = isset($response['live']) ? $response['live'] : "";
 
             if ($notificationMode !== "" && $this->_validateNotificationMode($notificationMode)) {
