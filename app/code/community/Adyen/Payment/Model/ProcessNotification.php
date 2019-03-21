@@ -1349,7 +1349,7 @@ class Adyen_Payment_Model_ProcessNotification extends Mage_Core_Model_Abstract
 
             // set the state to processing
             // if state is pending - do not change holded orders
-            if($order->getState() == 'pending') {
+            if($order->getState() == Mage_Sales_Model_Order::STATE_PENDING_PAYMENT) {
               $order->setState(Mage_Sales_Model_Order::STATE_PROCESSING);
             }
         }
