@@ -586,6 +586,14 @@
                         <is_cvv_required>0</is_cvv_required>
                         <is_checkout>1</is_checkout>
                     </troy>
+                    <cup>
+                        <code>cup</code>
+                        <code_alt>cup</code_alt>
+                        <name>Cup</name>
+                        <order>110</order>
+                        <is_cvv_required>0</is_cvv_required>
+                        <is_checkout>1</is_checkout>
+                    </cup>
                 </cctypes>
                 <boletotypes>
                     <boletobancario_hsbc>
