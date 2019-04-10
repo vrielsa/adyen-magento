@@ -1759,7 +1759,8 @@
                         </api_key_test>
                         <api_key_live translate="label">
                             <label>API key for Terminal API LIVE</label>
-                            <frontend_type>text</frontend_type>
+                            <frontend_type>obscure</frontend_type>
+                            <backend_model>adminhtml/system_config_backend_encrypted</backend_model>
                             <sort_order>45</sort_order>
                             <tooltip>Copy this from the Live Adyen Customer Area => Settings => Users => System => [web
                                 service user]=> Checkout API Key.
