@@ -56,6 +56,8 @@ class Adyen_Payment_PosController extends Mage_Core_Controller_Front_Action
         $timeStamper = date("Y-m-d") . "T" . date("H:i:s+00:00");
         $customerId = $quote->getCustomerId();
 
+        # Always create new order increment ID, assuring payment transaction is linked to one order only
+        $quote->unsReservedOrderId();
         $reference = $quote->reserveOrderId()->getReservedOrderId();
 
         $request = array(
@@ -130,11 +132,23 @@ class Adyen_Payment_PosController extends Mage_Core_Controller_Front_Action
             $quote->getPayment()->setAdditionalInformation('receipt', $formattedReceipt);
         }
 
+        $terminalResponse = "";
+        if (!empty($response['SaleToPOIResponse']['PaymentResponse'])) {
+            $terminalResponse = $response['SaleToPOIResponse']['PaymentResponse'];
+        }
+
         $quote->getPayment()->setAdditionalInformation(
             'terminalResponse',
-            $response['SaleToPOIResponse']['PaymentResponse']
+            $terminalResponse
         );
-        $quote->save();
+
+        try {
+            $quote->save();
+        } catch (Exception $e) {
+            $result = self::PAYMENT_RETRY;
+            $errorCondition = $e->getMessage();
+            Mage::logException($e);
+        }
 
         $resultArray = array(
             'result' => $result,
